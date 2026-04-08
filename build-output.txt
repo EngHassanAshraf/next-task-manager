@@ -1,0 +1,72 @@
+
+> task-manager@0.1.0 build
+> next build
+
+▲ Next.js 16.2.2 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 22.6s
+  Running TypeScript ...
+  Finished TypeScript in 41s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/35) ...
+  Generating static pages using 7 workers (8/35) 
+  Generating static pages using 7 workers (17/35) 
+  Generating static pages using 7 workers (26/35) 
+✓ Generating static pages using 7 workers (35/35) in 2.4s
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /account
+├ ƒ /account/profile
+├ ƒ /account/security
+├ ƒ /achievements
+├ ƒ /achievements/[id]
+├ ƒ /achievements/[id]/edit
+├ ƒ /achievements/new
+├ ƒ /admin
+├ ƒ /admin/permissions/new
+├ ƒ /admin/role-permissions/new
+├ ƒ /admin/roles/new
+├ ƒ /admin/sites/new
+├ ƒ /admin/users
+├ ƒ /admin/users/[id]/activity
+├ ƒ /admin/users/new
+├ ƒ /api/account/events
+├ ƒ /api/account/password
+├ ƒ /api/account/profile
+├ ƒ /api/account/sessions
+├ ƒ /api/account/sessions/[id]
+├ ƒ /api/achievements
+├ ƒ /api/achievements/[id]
+├ ƒ /api/auth/[...nextauth]
+├ ƒ /api/malfunctions
+├ ƒ /api/malfunctions/[id]
+├ ƒ /api/malfunctions/[id]/status
+├ ƒ /api/permissions
+├ ƒ /api/reports/overview
+├ ƒ /api/role-permissions
+├ ƒ /api/roles
+├ ƒ /api/sites
+├ ƒ /api/tasks
+├ ƒ /api/tasks/[id]
+├ ƒ /api/tasks/[id]/status
+├ ƒ /api/users
+├ ƒ /api/users/[id]
+├ ƒ /login
+├ ƒ /malfunctions
+├ ƒ /malfunctions/[id]
+├ ƒ /malfunctions/[id]/edit
+├ ƒ /malfunctions/new
+├ ƒ /reports
+├ ƒ /tasks
+├ ƒ /tasks/[id]
+├ ƒ /tasks/[id]/edit
+└ ƒ /tasks/new
+
+
+ƒ  (Dynamic)  server-rendered on demand
+
