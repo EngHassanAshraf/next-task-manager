@@ -1,36 +1,126 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Task Manager
+
+A full-stack task and malfunction tracking application built with Next.js 16, Prisma, and PostgreSQL. Supports Arabic and English, dark/light mode, and role-based access control.
+
+## Features
+
+- **Tasks** — create, assign, track status (New → In Progress → Blocked → Done → Closed)
+- **Malfunctions** — report and link malfunctions to tasks, track resolution
+- **Achievements** — log computed or custom achievements per site/user
+- **Reports** — overview charts for tasks and malfunctions
+- **Admin panel** — manage users, roles, permissions, and sites
+- **Account** — profile editing, password change, active session management
+- **Auth** — credentials-based login with session tracking, IP logging, and audit events
+- **i18n** — Arabic (RTL) and English support
+- **RBAC** — role and permission system with per-route enforcement
+
+## Tech Stack
+
+- [Next.js 16](https://nextjs.org) — App Router, Server Components
+- [Prisma 7](https://www.prisma.io) — ORM with `@prisma/adapter-pg` for connection pooling
+- [PostgreSQL](https://www.postgresql.org) — via [Supabase](https://supabase.com)
+- [NextAuth v4](https://next-auth.js.org) — credentials provider with JWT sessions
+- [Tailwind CSS v4](https://tailwindcss.com) — utility-first styling
+- [Radix UI](https://www.radix-ui.com) — accessible UI primitives
+- [Recharts](https://recharts.org) — report charts
+- [Zod](https://zod.dev) — schema validation
+- [Vitest](https://vitest.dev) — unit tests
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- A PostgreSQL database (Supabase recommended)
+
+### Setup
+
+1. Clone the repo and install dependencies:
+
+```bash
+npm install
+```
+
+2. Copy the example env file and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `NEXTAUTH_SECRET` | Random secret — generate with `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | App URL (e.g. `http://localhost:3000`) |
+
+3. Run database migrations:
+
+```bash
+npm run db:migrate
+```
+
+4. Seed initial data (admin role + default user):
+
+```bash
+npm run db:seed
+```
+
+5. Start the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | Description |
+|---|---|
+| `npm run dev` | Start development server |
+| `npm run build` | Generate Prisma client and build for production |
+| `npm run start` | Start production server |
+| `npm run db:migrate` | Run pending migrations (`prisma migrate deploy`) |
+| `npm run db:seed` | Seed the database |
+| `npm run db:generate` | Regenerate Prisma client |
+| `npm run typecheck` | TypeScript type check |
+| `npm run lint` | ESLint |
+| `npm run test:run` | Run unit tests once |
+| `npm run check` | Typecheck + lint + tests |
 
-## Learn More
+## Deployment (Vercel)
 
-To learn more about Next.js, take a look at the following resources:
+1. Push the repo to GitHub and import it in [Vercel](https://vercel.com).
+2. Set the following environment variables in the Vercel dashboard:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable | Notes |
+|---|---|
+| `DATABASE_URL` | Use the **session-mode pooler** URL from Supabase (port `5432`) |
+| `NEXTAUTH_SECRET` | Strong random string |
+| `NEXTAUTH_URL` | Your Vercel deployment URL |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. Vercel will automatically run `prisma generate && next build` on each deploy.
 
-## Deploy on Vercel
+> Run `npm run db:migrate` once against your production database before the first deploy (or from a CI step).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/
+    (main)/         # Authenticated app — tasks, malfunctions, achievements, reports, admin, account
+    api/            # REST API route handlers
+    login/          # Login page
+  components/       # Shared UI components
+  lib/
+    auth.ts         # NextAuth config
+    prisma.ts       # Prisma client singleton
+    rbac.ts         # Role/permission helpers
+    i18n/           # Translations (ar, en)
+    services/       # Business logic (task, malfunction, report, achievement)
+    validators/     # Zod schemas
+prisma/
+  schema.prisma     # Database schema
+  migrations/       # SQL migrations
+  seed.ts           # Seed script
+```
