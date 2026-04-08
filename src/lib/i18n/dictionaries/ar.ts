@@ -13,7 +13,7 @@ export const ar = {
     signIn: "تسجيل الدخول",
     signInTitle: "تسجيل الدخول",
     signInHint:
-      "استخدم بيانات حسابك (مثال: admin@example.com / admin123؛ مسؤول الموقع: siteadmin@example.com / siteadmin123).",
+      "استخدم بيانات حسابك.",
     email: "البريد الإلكتروني",
     password: "كلمة المرور",
     signingIn: "جارٍ تسجيل الدخول…",

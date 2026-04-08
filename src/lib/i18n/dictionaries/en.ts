@@ -13,7 +13,7 @@ export const en = {
     signIn: "Sign in",
     signInTitle: "Sign in",
     signInHint:
-      "Use your account credentials (e.g. admin@example.com / admin123; site admin: siteadmin@example.com / siteadmin123).",
+      "Use your account credentials.",
     email: "Email",
     password: "Password",
     signingIn: "Signing in…",
