@@ -8,7 +8,7 @@ import { getTranslator } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 import { sortSitesByDisplayName } from "@/lib/site-name-sort";
 
-import { DeleteSiteButton } from "../../sites/delete-site-button";
+import { DeleteSiteButton } from "./delete-site-button";
 
 export default async function SitesPage() {
   const { t } = await getTranslator();
