@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/app/page-header";
 import { getTranslator } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 
-import { EditSiteForm } from "../../../../sites/[id]/edit/edit-site-form";
+import { EditSiteForm } from "./edit-site-form";
 
 type PageProps = { params: Promise<{ id: string }> };
 
