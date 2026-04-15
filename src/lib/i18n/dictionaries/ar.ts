@@ -165,8 +165,8 @@ export const ar = {
       "كمسؤول موقع يمكنك إدارة حسابات المستخدمين. إعدادات النظام مقتصرة على المسؤولين الكاملين.",
     cards: {
       newSite: {
-        title: "موقع جديد",
-        desc: "تسجيل موقع للمهام والأعطال.",
+        title: "المواقع",
+        desc: "إدارة المواقع للمهام والأعطال والإنجازات.",
       },
       newRole: {
         title: "الأدوار",
@@ -249,6 +249,19 @@ export const ar = {
     couldNotChangePassword: "تعذّر تغيير كلمة المرور",
     passwordChanged: "تم تغيير كلمة المرور بنجاح.",
     activeStatus: "نشط",
+  },
+  adminSites: {
+    pageTitle: "المواقع",
+    subtitle: "إدارة المواقع المستخدمة في المهام والأعطال والإنجازات.",
+    newSite: "موقع جديد",
+    tableName: "الاسم",
+    tableActions: "إجراءات",
+    noSites: "لا توجد مواقع بعد.",
+    editTitle: "تعديل الموقع",
+    backToSites: "← المواقع",
+    deleteConfirm: "حذف هذا الموقع؟ لا يمكن التراجع.",
+    deleteFailed: "تعذّر حذف الموقع.",
+    saveFailed: "تعذّر حفظ الموقع.",
   },
   adminRoles: {
     pageTitle: "الأدوار",

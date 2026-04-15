@@ -26,7 +26,7 @@ export function NewSiteForm({ labels }: { labels: NewSiteFormLabels }) {
         method: "POST",
         body: JSON.stringify({ name }),
       });
-      router.push("/admin");
+      router.push("/admin/sites");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : labels.couldNotCreateSite);

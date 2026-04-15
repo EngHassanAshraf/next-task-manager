@@ -166,8 +166,8 @@ export const en = {
       "As site admin you can manage user accounts. System settings are restricted to full administrators.",
     cards: {
       newSite: {
-        title: "New site",
-        desc: "Register a site for tasks and malfunctions.",
+        title: "Sites",
+        desc: "Manage sites for tasks, malfunctions, and achievements.",
       },
       newRole: {
         title: "Roles",
@@ -251,6 +251,19 @@ export const en = {
     couldNotChangePassword: "Could not change password",
     passwordChanged: "Password changed successfully.",
     activeStatus: "Active",
+  },
+  adminSites: {
+    pageTitle: "Sites",
+    subtitle: "Manage sites used for tasks, malfunctions, and achievements.",
+    newSite: "New site",
+    tableName: "Name",
+    tableActions: "Actions",
+    noSites: "No sites yet.",
+    editTitle: "Edit site",
+    backToSites: "← Sites",
+    deleteConfirm: "Delete this site? This cannot be undone.",
+    deleteFailed: "Could not delete site.",
+    saveFailed: "Could not save site.",
   },
   adminRoles: {
     pageTitle: "Roles",

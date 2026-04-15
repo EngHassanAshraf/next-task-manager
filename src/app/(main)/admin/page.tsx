@@ -7,7 +7,7 @@ import { getTranslator } from "@/lib/i18n/server";
 import { isAdmin } from "@/lib/rbac";
 
 const systemCards = [
-  { href: "/admin/sites/new", titleKey: "admin.cards.newSite.title", descKey: "admin.cards.newSite.desc" },
+  { href: "/admin/sites", titleKey: "admin.cards.newSite.title", descKey: "admin.cards.newSite.desc" },
   { href: "/admin/roles", titleKey: "admin.cards.newRole.title", descKey: "admin.cards.newRole.desc" },
   { href: "/admin/permissions", titleKey: "admin.cards.newPermission.title", descKey: "admin.cards.newPermission.desc" },
   {
@@ -19,7 +19,6 @@ const systemCards = [
 
 const userCards = [
   { href: "/admin/users", titleKey: "admin.cards.users.title", descKey: "admin.cards.users.desc" },
-  { href: "/admin/users/new", titleKey: "admin.cards.newUser.title", descKey: "admin.cards.newUser.desc" },
 ] as const;
 
 export default async function AdminPage() {

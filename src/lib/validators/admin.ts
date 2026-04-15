@@ -4,6 +4,10 @@ export const siteCreateSchema = z.object({
   name: z.string().trim().min(1).max(200),
 });
 
+export const siteUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+});
+
 export const roleCreateSchema = z.object({
   name: z.string().trim().min(1).max(100),
   description: z.string().trim().max(500).nullable().optional(),
