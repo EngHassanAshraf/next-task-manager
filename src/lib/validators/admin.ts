@@ -29,3 +29,16 @@ export const rolePermissionCreateSchema = z.object({
 export const userStatusPatchSchema = z.object({
   active: z.boolean(),
 });
+
+export const userUpdateSchema = z.object({
+  name: z.string().trim().max(200).nullable().optional(),
+  email: z.string().trim().email().optional(),
+  roleId: z.string().min(1).optional(),
+  active: z.boolean().optional(),
+});
+
+export const roleUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  description: z.string().trim().max(500).nullable().optional(),
+  permissionIds: z.array(z.string()).optional(),
+});

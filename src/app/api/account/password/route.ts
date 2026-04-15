@@ -38,7 +38,7 @@ export async function PATCH(request: Request) {
   if (!ok) {
     return badRequest("Current password is incorrect.");
   }
-  const nextHash = await bcrypt.hash(parsed.data.newPassword, 10);
+  const nextHash = await bcrypt.hash(parsed.data.newPassword, 12);
 
   const headers = request.headers;
   const ip = getClientIp(headers);

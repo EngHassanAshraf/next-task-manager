@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { apiJson } from "@/lib/api-client";
 import type { EditMalfunctionFormLabels } from "@/lib/i18n/label-builders";
 import { MALFUNCTION_STATUS, type MalfunctionStatus } from "@/lib/constants";
 
@@ -44,26 +45,25 @@ export function EditMalfunctionForm({
     const status = String(fd.get("status") ?? "OPENED_ON_TASK") as MalfunctionStatus;
 
     setPending(true);
-    const res = await fetch(`/api/malfunctions/${malfunction.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        desc,
-        siteId,
-        reporterUserId,
-        taskId: taskId || null,
-        status,
-      }),
-    });
-    setPending(false);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      setError(err.error ?? labels.couldNotSave);
-      return;
+    try {
+      await apiJson(`/api/malfunctions/${malfunction.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          title,
+          desc,
+          siteId,
+          reporterUserId,
+          taskId: taskId || null,
+          status,
+        }),
+      });
+      router.push(`/malfunctions/${malfunction.id}`);
+      router.refresh();
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setPending(false);
     }
-    router.push(`/malfunctions/${malfunction.id}`);
-    router.refresh();
   }
 
   return (

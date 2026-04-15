@@ -1,9 +1,9 @@
 import type { Session } from "next-auth";
 import type { NextResponse } from "next/server";
+import { Prisma } from "@/generated/prisma/client";
 
 import { badRequest, forbidden, unauthorized } from "@/lib/api-response";
 import { canManageUserAccounts, isAdmin } from "@/lib/rbac";
-import { Prisma } from "@/generated/prisma/client";
 
 export function assertAdmin(session: Session | null): NextResponse | null {
   if (!session?.user?.id) {

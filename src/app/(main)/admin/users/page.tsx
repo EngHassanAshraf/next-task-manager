@@ -2,10 +2,12 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 
 import { Pagination } from "@/components/pagination";
+import { PageHeader } from "@/components/app/page-header";
+import { Button } from "@/components/ui/button";
 import { authOptions } from "@/lib/auth";
-import { buildUsersAdminTableLabels } from "@/lib/i18n/label-builders";
-import { buildPaginationLabels } from "@/lib/i18n/label-builders";
+import { buildPaginationLabels, buildUsersAdminTableLabels } from "@/lib/i18n/label-builders";
 import { getTranslator } from "@/lib/i18n/server";
+import { parsePositiveInt } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 
 import { UsersAdminTable } from "./users-admin-table";
@@ -13,12 +15,6 @@ import { UsersAdminTable } from "./users-admin-table";
 type PageProps = {
   searchParams?: Promise<{ page?: string; pageSize?: string }>;
 };
-
-function parsePositiveInt(v: string | undefined, fallback: number, max = 200): number {
-  const n = Number(v);
-  if (!Number.isFinite(n) || n <= 0) return fallback;
-  return Math.min(Math.floor(n), max);
-}
 
 export default async function AdminUsersPage(props: PageProps) {
   const { t } = await getTranslator();
@@ -44,21 +40,15 @@ export default async function AdminUsersPage(props: PageProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link href="/admin" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-            {t("common.backToAdmin")}
-          </Link>
-          <h1 className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-50">{t("adminUsers.pageTitle")}</h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t("adminUsers.subtitle")}</p>
-        </div>
-        <Link
-          href="/admin/users/new"
-          className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
-        >
-          {t("adminUsers.newUser")}
-        </Link>
-      </div>
+      <PageHeader
+        title={t("adminUsers.pageTitle")}
+        description={t("adminUsers.subtitle")}
+        actions={
+          <Button asChild>
+            <Link href="/admin/users/new">{t("adminUsers.newUser")}</Link>
+          </Button>
+        }
+      />
       <Pagination
         page={page}
         pageSize={pageSize}

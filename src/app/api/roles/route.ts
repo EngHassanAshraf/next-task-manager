@@ -4,20 +4,16 @@ import { NextResponse } from "next/server";
 import { assertAdmin, badRequestIfUniqueViolation } from "@/lib/api-admin";
 import { authOptions } from "@/lib/auth";
 import { badRequest, serverError, tooManyRequests } from "@/lib/api-response";
-import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
+import { getRoles } from "@/lib/services/role-service";
+import { prisma } from "@/lib/prisma";
 import { roleCreateSchema } from "@/lib/validators/admin";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   const denied = assertAdmin(session);
   if (denied) return denied;
-  const roles = await prisma.role.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      permissions: { include: { permission: true } },
-    },
-  });
+  const roles = await getRoles();
   return NextResponse.json(roles);
 }
 

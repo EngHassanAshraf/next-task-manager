@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { apiJson } from "@/lib/api-client";
 import type { EditTaskFormLabels } from "@/lib/i18n/label-builders";
 import { TASK_STATUS, type TaskStatus } from "@/lib/constants";
 
@@ -44,26 +45,25 @@ export function EditTaskForm({
     const statusDetails = String(fd.get("statusDetails") ?? "").trim();
 
     setPending(true);
-    const res = await fetch(`/api/tasks/${task.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        desc,
-        siteId,
-        assignmentToUserId: assignmentToUserId || null,
-        malfunctionId: malfunctionId || null,
-        status,
-        statusDetails: statusDetails || null,
-      }),
-    });
-    setPending(false);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      setError(err.error ?? labels.couldNotSave);
-      return;
+    try {
+      await apiJson(`/api/tasks/${task.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          desc,
+          siteId,
+          assignmentToUserId: assignmentToUserId || null,
+          malfunctionId: malfunctionId || null,
+          status,
+          statusDetails: statusDetails || null,
+        }),
+      });
+      router.push(`/tasks/${task.id}`);
+      router.refresh();
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setPending(false);
     }
-    router.push(`/tasks/${task.id}`);
-    router.refresh();
   }
 
   return (

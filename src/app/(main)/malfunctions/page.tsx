@@ -4,7 +4,8 @@ import { Pagination } from "@/components/pagination";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { buildPaginationLabels } from "@/lib/i18n/label-builders";
-import { getTranslator } from "@/lib/i18n/server";
+import { dateLocaleFor, getTranslator } from "@/lib/i18n/server";
+import { parsePositiveInt } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 
 import { MalfunctionsTable } from "./malfunctions-table";
@@ -13,14 +14,9 @@ type PageProps = {
   searchParams?: Promise<{ page?: string; pageSize?: string }>;
 };
 
-function parsePositiveInt(v: string | undefined, fallback: number, max = 200): number {
-  const n = Number(v);
-  if (!Number.isFinite(n) || n <= 0) return fallback;
-  return Math.min(Math.floor(n), max);
-}
-
 export default async function MalfunctionsPage(props: PageProps) {
   const { locale, t } = await getTranslator();
+  const dateLocale = dateLocaleFor(locale);
   const sp = (await props.searchParams) ?? {};
   const pageSize = parsePositiveInt(sp.pageSize, 50, 200);
   const page = parsePositiveInt(sp.page, 1, 1000000);
@@ -47,7 +43,7 @@ export default async function MalfunctionsPage(props: PageProps) {
         title={
           <>
             {t("malfunctions.pageTitle")}{" "}
-            <span className="text-muted-foreground">({total.toLocaleString(locale === "ar" ? "ar-EG" : "en-US")})</span>
+            <span className="text-muted-foreground">({total.toLocaleString(dateLocale)})</span>
           </>
         }
         actions={
@@ -62,11 +58,11 @@ export default async function MalfunctionsPage(props: PageProps) {
         total={total}
         basePath="/malfunctions"
         labels={buildPaginationLabels(t)}
-        locale={locale === "ar" ? "ar-EG" : "en-US"}
+        locale={dateLocale}
       />
       <MalfunctionsTable
         malfunctions={rows}
-        locale={locale === "ar" ? "ar-EG" : "en-US"}
+        locale={dateLocale}
         labels={{
           id: t("malfunctions.tableId"),
           title: t("malfunctions.tableTitle"),

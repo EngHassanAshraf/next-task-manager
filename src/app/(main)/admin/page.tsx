@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 
+import { PageHeader } from "@/components/app/page-header";
 import { authOptions } from "@/lib/auth";
 import { getTranslator } from "@/lib/i18n/server";
 import { isAdmin } from "@/lib/rbac";
 
 const systemCards = [
   { href: "/admin/sites/new", titleKey: "admin.cards.newSite.title", descKey: "admin.cards.newSite.desc" },
+  { href: "/admin/roles", titleKey: "admin.cards.roles.title", descKey: "admin.cards.roles.desc" },
   { href: "/admin/roles/new", titleKey: "admin.cards.newRole.title", descKey: "admin.cards.newRole.desc" },
+  { href: "/admin/permissions", titleKey: "admin.cards.permissions.title", descKey: "admin.cards.permissions.desc" },
   {
     href: "/admin/permissions/new",
     titleKey: "admin.cards.newPermission.title",
@@ -33,21 +36,19 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{t("admin.title")}</h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          {fullAdmin ? t("admin.subtitleFull") : t("admin.subtitleSite")}
-        </p>
-      </div>
+      <PageHeader
+        title={t("admin.title")}
+        description={fullAdmin ? t("admin.subtitleFull") : t("admin.subtitleSite")}
+      />
       <ul className="grid gap-4 sm:grid-cols-2">
         {cards.map((c) => (
           <li key={c.href}>
             <Link
               href={c.href}
-              className="block rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+              className="block rounded-lg border border-border bg-card p-4 transition hover:border-border/80 hover:bg-accent"
             >
-              <span className="font-medium text-zinc-900 dark:text-zinc-50">{t(c.titleKey)}</span>
-              <span className="mt-1 block text-sm text-zinc-600 dark:text-zinc-400">{t(c.descKey)}</span>
+              <span className="font-medium text-card-foreground">{t(c.titleKey)}</span>
+              <span className="mt-1 block text-sm text-muted-foreground">{t(c.descKey)}</span>
             </Link>
           </li>
         ))}

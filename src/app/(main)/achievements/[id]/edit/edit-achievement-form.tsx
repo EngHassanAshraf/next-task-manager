@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { apiJson } from "@/lib/api-client";
 import type { EditAchievementFormLabels } from "@/lib/i18n/label-builders";
 import {
   ACHIEVEMENT_STATUS,
@@ -43,30 +44,29 @@ export function EditAchievementForm({
     const actualRaw = String(fd.get("actualValue") ?? "").trim();
 
     setPending(true);
-    const res = await fetch(`/api/achievements/${achievement.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        desc: desc || null,
-        siteId: siteId || null,
-        status,
-        actualValue:
-          achievement.type === "CUSTOM"
-            ? actualRaw === ""
-              ? null
-              : Number(actualRaw)
-            : undefined,
-      }),
-    });
-    setPending(false);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      setError(err.error ?? labels.couldNotSave);
-      return;
+    try {
+      await apiJson(`/api/achievements/${achievement.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          title,
+          desc: desc || null,
+          siteId: siteId || null,
+          status,
+          actualValue:
+            achievement.type === "CUSTOM"
+              ? actualRaw === ""
+                ? null
+                : Number(actualRaw)
+              : undefined,
+        }),
+      });
+      router.push(`/achievements/${achievement.id}`);
+      router.refresh();
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setPending(false);
     }
-    router.push(`/achievements/${achievement.id}`);
-    router.refresh();
   }
 
   return (

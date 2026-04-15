@@ -37,12 +37,12 @@ export default async function EditMalfunctionPage(props: PageProps) {
       <div className="flex items-center gap-3">
         <Link
           href={`/malfunctions/${id}`}
-          className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+          className="text-sm text-primary hover:underline"
         >
           {t("common.backToMalfunction")}
         </Link>
       </div>
-      <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{t("malfunctions.editTitle")}</h1>
+      <h1 className="text-xl font-semibold text-foreground">{t("malfunctions.editTitle")}</h1>
       <EditMalfunctionForm
         malfunction={m}
         sites={sites}

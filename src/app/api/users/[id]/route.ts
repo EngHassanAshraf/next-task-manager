@@ -7,9 +7,55 @@ import { badRequest, forbidden, notFound, tooManyRequests } from "@/lib/api-resp
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { siteAdminCannotManageAdminRole } from "@/lib/user-account-policy";
-import { userStatusPatchSchema } from "@/lib/validators/admin";
+import { userStatusPatchSchema, userUpdateSchema } from "@/lib/validators/admin";
 
 type Ctx = { params: Promise<{ id: string }> };
+
+export async function PUT(request: Request, context: Ctx) {
+  const session = await getServerSession(authOptions);
+  const denied = assertUserAccountManager(session);
+  if (denied) return denied;
+  const rl = rateLimit({
+    key: `api:users:update:${session!.user.id}`,
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) return tooManyRequests(undefined, rl.retryAfterSeconds);
+
+  const { id } = await context.params;
+  const target = await prisma.user.findUnique({
+    where: { id },
+    include: { role: true },
+  });
+  if (!target) {
+    return notFound();
+  }
+  if (siteAdminCannotManageAdminRole(session!.user.roleName, target.role.name)) {
+    return forbidden();
+  }
+
+  const body = await request.json().catch(() => null);
+  const parsed = userUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return badRequest(parsed.error.message);
+  }
+  const v = parsed.data;
+
+  // Check if email is being changed and if it's unique
+  if (v.email && v.email !== target.email) {
+    const existing = await prisma.user.findUnique({ where: { email: v.email } });
+    if (existing) {
+      return badRequest("Email already in use.");
+    }
+  }
+
+  const updated = await prisma.user.update({
+    where: { id },
+    data: v,
+    include: { role: true },
+  });
+  return NextResponse.json(updated);
+}
 
 export async function PATCH(request: Request, context: Ctx) {
   const session = await getServerSession(authOptions);

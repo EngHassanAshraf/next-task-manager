@@ -5,19 +5,17 @@ import { NextResponse } from "next/server";
 import { assertUserAccountManager, badRequestIfUniqueViolation } from "@/lib/api-admin";
 import { authOptions } from "@/lib/auth";
 import { badRequest, forbidden, serverError, tooManyRequests } from "@/lib/api-response";
-import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { siteAdminCannotManageAdminRole } from "@/lib/user-account-policy";
+import { getUsers } from "@/lib/services/user-service";
+import { prisma } from "@/lib/prisma";
 import { userCreateSchema } from "@/lib/validators/admin";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   const denied = assertUserAccountManager(session);
   if (denied) return denied;
-  const users = await prisma.user.findMany({
-    orderBy: { email: "asc" },
-    include: { role: true },
-  });
+  const users = await getUsers();
   return NextResponse.json(
     users.map((u) => ({
       id: u.id,
@@ -56,7 +54,7 @@ export async function POST(request: Request) {
     return forbidden();
   }
 
-  const passwordHash = await bcrypt.hash(v.password, 10);
+  const passwordHash = await bcrypt.hash(v.password, 12);
   try {
     const user = await prisma.user.create({
       data: {

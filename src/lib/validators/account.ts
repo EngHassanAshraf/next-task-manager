@@ -13,3 +13,8 @@ export const revokeSessionSchema = z.object({
   id: z.string().min(1),
 });
 
+/** Used by admins to reset another user's password (no current password required). */
+export const adminPasswordResetSchema = z.object({
+  newPassword: z.string().min(8).max(200),
+});
+

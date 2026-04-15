@@ -35,11 +35,11 @@ export default async function EditTaskPage(props: PageProps) {
   return (
     <div className="mx-auto max-w-lg space-y-4">
       <div className="flex items-center gap-3">
-        <Link href={`/tasks/${id}`} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+        <Link href={`/tasks/${id}`} className="text-sm text-primary hover:underline">
           {t("common.backToTask")}
         </Link>
       </div>
-      <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{t("tasks.editTitle")}</h1>
+      <h1 className="text-xl font-semibold text-foreground">{t("tasks.editTitle")}</h1>
       <EditTaskForm
         task={task}
         sites={sites}
