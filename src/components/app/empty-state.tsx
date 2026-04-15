@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-
+import { Inbox } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export function EmptyState({
@@ -20,15 +20,20 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card p-8 text-center",
+        "flex flex-col items-center justify-center gap-3 py-12 text-center",
         className
       )}
     >
-      {icon ? <div className="text-muted-foreground">{icon}</div> : null}
-      <div className="text-sm font-medium text-foreground">{title}</div>
-      {description ? <div className="text-sm text-muted-foreground">{description}</div> : null}
-      {action ? <div className="mt-2">{action}</div> : null}
+      <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        {icon ?? <Inbox className="size-5" />}
+      </div>
+      <div>
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        {description ? (
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        ) : null}
+      </div>
+      {action ? <div className="mt-1">{action}</div> : null}
     </div>
   );
 }
-

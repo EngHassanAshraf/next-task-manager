@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-
 import { cn } from "@/lib/cn";
 
 export function DataTableShell({
@@ -16,13 +15,16 @@ export function DataTableShell({
   return (
     <div
       className={cn(
-        "overflow-x-auto rounded-xl border border-border bg-card shadow-sm",
+        "overflow-hidden rounded-xl border border-border bg-card shadow-sm",
         className
       )}
     >
-      {children}
-      {empty ? <div className="border-t border-border p-4">{empty}</div> : null}
+      <div className="overflow-x-auto">
+        {children}
+      </div>
+      {empty ? (
+        <div className="border-t border-border p-6">{empty}</div>
+      ) : null}
     </div>
   );
 }
-

@@ -7,6 +7,9 @@ export const en = {
     reports: "Reports",
     account: "Account",
     admin: "Admin",
+    groupOperations: "Operations",
+    groupAnalytics: "Analytics",
+    groupSystem: "System",
   },
   auth: {
     signOut: "Sign out",

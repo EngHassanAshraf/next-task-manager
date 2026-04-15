@@ -7,6 +7,9 @@ export const ar = {
     reports: "التقارير",
     account: "الحساب",
     admin: "الإدارة",
+    groupOperations: "العمليات",
+    groupAnalytics: "التحليلات",
+    groupSystem: "النظام",
   },
   auth: {
     signOut: "تسجيل الخروج",
