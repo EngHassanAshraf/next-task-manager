@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { Search, ExternalLink } from "lucide-react";
 
 import { StatusBadge } from "@/components/status-badge";
 import { DataTableShell } from "@/components/app/data-table-shell";
 import { EmptyState } from "@/components/app/empty-state";
+import { cn } from "@/lib/cn";
 import type { MalfunctionStatus } from "@/lib/constants";
 
 type Row = {
@@ -34,7 +36,21 @@ export type MalfunctionsTableLabels = {
   view: string;
   noRows: string;
   updateFailed: string;
+  searchPlaceholder?: string;
 };
+
+const STATUS_ORDER: Record<MalfunctionStatus, number> = {
+  OPENED_ON_TASK: 0,
+  INACTIVE: 1,
+  DONE_ON_TASK: 2,
+  CLOSED: 3,
+};
+
+function toneForStatus(s: MalfunctionStatus) {
+  if (s === "CLOSED" || s === "DONE_ON_TASK") return "success" as const;
+  if (s === "INACTIVE") return "warning" as const;
+  return "info" as const;
+}
 
 export function MalfunctionsTable({
   malfunctions,
@@ -45,112 +61,116 @@ export function MalfunctionsTable({
   labels: MalfunctionsTableLabels;
   locale: string;
 }) {
-  void labels.updateFailed;
-  const [error] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
-  const STATUS_ORDER: Record<MalfunctionStatus, number> = {
-    OPENED_ON_TASK: 0,
-    INACTIVE: 1,
-    DONE_ON_TASK: 2,
-    CLOSED: 3,
-  };
-
-  const sorted = [...malfunctions].sort(
-    (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status],
-  );
-
-  function toneForStatus(s: MalfunctionStatus) {
-    if (s === "CLOSED" || s === "DONE_ON_TASK") return "success";
-    if (s === "INACTIVE") return "warning";
-    return "info";
-  }
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const base = [...malfunctions].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
+    if (!q) return base;
+    return base.filter(
+      (m) =>
+        m.title.toLowerCase().includes(q) ||
+        m.site.name.toLowerCase().includes(q) ||
+        m.status.toLowerCase().includes(q) ||
+        (m.reporter.name ?? m.reporter.email ?? "").toLowerCase().includes(q)
+    );
+  }, [malfunctions, search]);
 
   return (
-    <div className="space-y-2">
-      {error ? (
-        <div
-          role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200"
-        >
-          {error}
-        </div>
-      ) : null}
+    <div className="space-y-3">
+      {/* Search */}
+      <div className="relative max-w-xs">
+        <Search className="absolute inset-s-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={labels.searchPlaceholder ?? "Search…"}
+          className={cn(
+            "h-8 w-full rounded-lg border border-input bg-background ps-8 pe-3 text-sm",
+            "placeholder:text-muted-foreground/60",
+            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+          )}
+        />
+      </div>
+
       <DataTableShell
-        empty={malfunctions.length === 0 ? <EmptyState title={labels.noRows} /> : undefined}
+        empty={filtered.length === 0 ? <EmptyState title={labels.noRows} /> : undefined}
       >
         <table className="min-w-full border-collapse text-start text-sm">
-          <thead className="sticky top-0 z-10 bg-muted/40">
-          <tr>
-
-            <th className="border-b border-border px-3 py-2 font-medium">
-        
-              {labels.title}
-            </th>
-            <th className="border-b border-border px-3 py-2 font-medium">
-              {labels.site}
-            </th>
-            <th className="border-b border-border px-3 py-2 font-medium">
-              {labels.reporter}
-            </th>
-            <th className="border-b border-border px-3 py-2 font-medium">
-              {labels.task}
-            </th>
-            <th className="border-b border-border px-3 py-2 font-medium">
-              {labels.status}
-            </th>
-            <th className="border-b border-border px-3 py-2 font-medium">
-              {labels.created}
-            </th>
-            <th className="border-b border-border px-3 py-2 font-medium">
-              {labels.endClosed}
-            </th>
-
-          </tr>
+          <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm">
+            <tr>
+              <th className="border-b border-border px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {labels.title}
+              </th>
+              <th className="border-b border-border px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {labels.site}
+              </th>
+              <th className="border-b border-border px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {labels.status}
+              </th>
+              <th className="border-b border-border px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {labels.reporter}
+              </th>
+              <th className="border-b border-border px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {labels.task}
+              </th>
+              <th className="border-b border-border px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {labels.created}
+              </th>
+              <th className="border-b border-border px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {labels.endClosed}
+              </th>
+            </tr>
           </thead>
-          <tbody>
-            {sorted.map((m) => (
+          <tbody className="divide-y divide-border/50">
+            {filtered.map((m) => (
               <tr
                 key={m.id}
-                className="border-b border-border/50 hover:bg-muted/30"
+                className="group transition-colors hover:bg-muted/40"
               >
-                <td className="max-w-xs px-3 py-2 text-foreground">
+                {/* Primary column */}
+                <td className="px-4 py-3.5">
                   <Link
-                  href={`/malfunctions/${m.id}`}
-                  className="text-sm text-primary hover:underline"
-                >
-                {m.title.slice(0, 60)}
-                {m.title.length > 60 ? "…" : ""}
-                </Link>
-              </td>
-              <td className="px-3 py-2">{m.site.name.replace(/^\d+\s*[-–—.]?\s*/, "")}</td>
-              <td className="px-3 py-2">{m.reporter.name ?? m.reporter.email}</td>
-              <td className="px-3 py-2">
-                {m.task ? (
-                  <Link
-                    href={`/tasks/${m.task.id}`}
-                    className="text-primary hover:underline"
+                    href={`/malfunctions/${m.id}`}
+                    className="flex items-center gap-1.5 font-medium text-foreground hover:text-primary transition-colors"
                   >
-                    {labels.viewTask}
+                    <span className="line-clamp-1">
+                      {m.title.slice(0, 70)}{m.title.length > 70 ? "…" : ""}
+                    </span>
+                    <ExternalLink className="size-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
                   </Link>
-                ) : (
-                  "—"
-                )}
-              </td>
-              <td className="px-3 py-2">
-                <div className="flex flex-wrap items-center gap-2">
+                </td>
+                <td className="px-4 py-3.5 text-sm text-muted-foreground">
+                  {m.site.name.replace(/^\d+\s*[-–—.]?\s*/, "")}
+                </td>
+                <td className="px-4 py-3.5">
                   <StatusBadge value={m.status} tone={toneForStatus(m.status)} />
-                </div>
-              </td>
-              <td suppressHydrationWarning className="whitespace-nowrap px-3 py-2 text-xs text-muted-foreground">
-                {new Date(m.createdDatetime).toLocaleString(locale)}
-              </td>
-              <td suppressHydrationWarning className="whitespace-nowrap px-3 py-2 text-xs text-muted-foreground">
-                {m.endClosedDatetime
-                  ? new Date(m.endClosedDatetime).toLocaleString(locale)
-                  : "—"}
-              </td>
-
-            </tr>
+                </td>
+                <td className="px-4 py-3.5 text-sm text-muted-foreground">
+                  {m.reporter.name ?? m.reporter.email}
+                </td>
+                <td className="px-4 py-3.5 text-sm">
+                  {m.task ? (
+                    <Link
+                      href={`/tasks/${m.task.id}`}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {labels.viewTask}
+                    </Link>
+                  ) : (
+                    <span className="text-muted-foreground/40">—</span>
+                  )}
+                </td>
+                <td suppressHydrationWarning className="whitespace-nowrap px-4 py-3.5 text-xs text-muted-foreground">
+                  {new Date(m.createdDatetime).toLocaleString(locale)}
+                </td>
+                <td suppressHydrationWarning className="whitespace-nowrap px-4 py-3.5 text-xs text-muted-foreground">
+                  {m.endClosedDatetime
+                    ? new Date(m.endClosedDatetime).toLocaleString(locale)
+                    : <span className="text-muted-foreground/40">—</span>}
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>

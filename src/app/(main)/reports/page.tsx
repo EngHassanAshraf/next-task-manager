@@ -1,45 +1,93 @@
+import { CheckCircle2, AlertCircle, Clock, Wrench } from "lucide-react";
+
+import { PageHeader } from "@/components/app/page-header";
+import { DataTableShell } from "@/components/app/data-table-shell";
 import { getTranslator } from "@/lib/i18n/server";
 import { getOverviewReportCached } from "@/lib/services/report-service";
+import { cn } from "@/lib/cn";
 
 import { ReportsCharts } from "./reports-charts";
+
+type KpiCard = {
+  label: string;
+  value: string | number;
+  sub: string;
+  icon: React.ElementType;
+  tint: string;
+  iconColor: string;
+};
 
 export default async function ReportsPage() {
   const { t } = await getTranslator();
   const report = await getOverviewReportCached();
 
+  const kpis: KpiCard[] = [
+    {
+      label: t("reports.kpiTasksDoneClosed"),
+      value: `${report.tasks.doneOrClosedPercent}%`,
+      sub: `${report.tasks.done + report.tasks.closed} / ${report.tasks.total}`,
+      icon: CheckCircle2,
+      tint: "bg-success/5",
+      iconColor: "text-success",
+    },
+    {
+      label: t("reports.kpiMalfunctionsClosed"),
+      value: `${report.malfunctions.closedPercent}%`,
+      sub: `${report.malfunctions.closed} / ${report.malfunctions.total}`,
+      icon: AlertCircle,
+      tint: "bg-info/5",
+      iconColor: "text-info",
+    },
+    {
+      label: t("reports.kpiTasksInProgress"),
+      value: report.tasks.inProgress,
+      sub: `/ ${report.tasks.total}`,
+      icon: Clock,
+      tint: "bg-warning/5",
+      iconColor: "text-warning",
+    },
+    {
+      label: t("reports.kpiMalfunctionsDoneOnTask"),
+      value: report.malfunctions.doneOnTask,
+      sub: `/ ${report.malfunctions.total}`,
+      icon: Wrench,
+      tint: "bg-primary/5",
+      iconColor: "text-primary",
+    },
+  ];
+
   return (
     <div className="space-y-8">
-      <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{t("reports.pageTitle")}</h1>
+      <PageHeader title={t("reports.pageTitle")} />
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase text-zinc-500">{t("reports.kpiTasksDoneClosed")}</p>
-          <p className="mt-1 text-2xl font-semibold">
-            {report.tasks.doneOrClosedPercent}%
-          </p>
-          <p className="text-xs text-zinc-500">
-            {report.tasks.done + report.tasks.closed} / {report.tasks.total}
-          </p>
-        </div>
-        <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase text-zinc-500">{t("reports.kpiMalfunctionsClosed")}</p>
-          <p className="mt-1 text-2xl font-semibold">
-            {report.malfunctions.closedPercent}%
-          </p>
-          <p className="text-xs text-zinc-500">
-            {report.malfunctions.closed} / {report.malfunctions.total}
-          </p>
-        </div>
-        <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase text-zinc-500">{t("reports.kpiTasksInProgress")}</p>
-          <p className="mt-1 text-2xl font-semibold">{report.tasks.inProgress}</p>
-        </div>
-        <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase text-zinc-500">{t("reports.kpiMalfunctionsDoneOnTask")}</p>
-          <p className="mt-1 text-2xl font-semibold">{report.malfunctions.doneOnTask}</p>
-        </div>
+      {/* KPI cards */}
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {kpis.map((k) => {
+          const Icon = k.icon;
+          return (
+            <div
+              key={k.label}
+              className={cn(
+                "rounded-xl border border-border p-5 transition-shadow hover:shadow-md hover:shadow-black/5",
+                k.tint
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground leading-tight">
+                  {k.label}
+                </p>
+                <Icon className={cn("size-4 shrink-0 mt-0.5", k.iconColor)} />
+              </div>
+              <p className="mt-3 text-3xl font-bold tracking-tight text-foreground">
+                {k.value}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">{k.sub}</p>
+            </div>
+          );
+        })}
       </section>
 
+      {/* Charts */}
       <ReportsCharts
         report={report}
         labels={{
@@ -51,42 +99,50 @@ export default async function ReportsPage() {
         }}
       />
 
-      <section>
-        <h2 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">{t("reports.bySite")}</h2>
-        <div className="mt-2 overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-          <table className="min-w-full text-start text-sm">
-            <thead className="bg-zinc-50 dark:bg-zinc-900/50">
+      {/* By-site table */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">{t("reports.bySite")}</h2>
+        <DataTableShell>
+          <table className="min-w-full border-collapse text-start text-sm">
+            <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm">
               <tr>
-                <th className="border-b border-zinc-200 px-3 py-2 dark:border-zinc-800">
-                  {t("reports.colSite")}
-                </th>
-                <th className="border-b border-zinc-200 px-3 py-2 dark:border-zinc-800">
-                  {t("reports.colTasksDoneClosed")}
-                </th>
-                <th className="border-b border-zinc-200 px-3 py-2 dark:border-zinc-800">
-                  {t("reports.colTasksTotal")}
-                </th>
-                <th className="border-b border-zinc-200 px-3 py-2 dark:border-zinc-800">
-                  {t("reports.colMalfunctionsClosed")}
-                </th>
-                <th className="border-b border-zinc-200 px-3 py-2 dark:border-zinc-800">
-                  {t("reports.colMalfunctionsTotal")}
-                </th>
+                {[
+                  t("reports.colSite"),
+                  t("reports.colTasksDoneClosed"),
+                  t("reports.colTasksTotal"),
+                  t("reports.colMalfunctionsClosed"),
+                  t("reports.colMalfunctionsTotal"),
+                ].map((col) => (
+                  <th
+                    key={col}
+                    className="border-b border-border px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                  >
+                    {col}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody>
-              {report.bySite.map((s) => (
-                <tr key={s.siteId} className="border-b border-zinc-100 dark:border-zinc-800">
-                  <td className="px-3 py-2">{s.siteName}</td>
-                  <td className="px-3 py-2">{s.tasksDoneOrClosed}</td>
-                  <td className="px-3 py-2">{s.tasksTotal}</td>
-                  <td className="px-3 py-2">{s.malfunctionsClosed}</td>
-                  <td className="px-3 py-2">{s.malfunctionsTotal}</td>
-                </tr>
-              ))}
+            <tbody className="divide-y divide-border/50">
+              {report.bySite.map((s) => {
+                const taskPct = s.tasksTotal === 0 ? 0 : Math.round((s.tasksDoneOrClosed / s.tasksTotal) * 100);
+                return (
+                  <tr key={s.siteId} className="transition-colors hover:bg-muted/40">
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      {s.siteName.replace(/^\d+\s*[-–—.]?\s*/, "")}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      <span className="font-medium text-foreground">{s.tasksDoneOrClosed}</span>
+                      <span className="ms-1.5 text-xs text-muted-foreground/60">({taskPct}%)</span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{s.tasksTotal}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{s.malfunctionsClosed}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{s.malfunctionsTotal}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-        </div>
+        </DataTableShell>
       </section>
     </div>
   );
