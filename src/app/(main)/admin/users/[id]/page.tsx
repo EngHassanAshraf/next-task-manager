@@ -1,84 +1,89 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/status-badge";
-import Link from "next/link";
+import { dateLocaleFor, getTranslator } from "@/lib/i18n/server";
+import { getUserById } from "@/lib/services/user-service";
 
-interface User {
-  id: string;
-  name: string | null;
-  email: string;
-  roleId: string;
-  roleName: string;
-  active: boolean;
-  deletedAt: string | null;
-}
+type PageProps = { params: Promise<{ id: string }> };
 
-async function getUser(id: string): Promise<User | null> {
-  const res = await fetch(`${process.env.NEXTAUTH_URL}/api/users/${id}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) return null;
-  return res.json();
-}
+export default async function UserDetailPage(props: PageProps) {
+  const { locale, t } = await getTranslator();
+  const dateLoc = dateLocaleFor(locale);
+  const { id } = await props.params;
 
-export default async function UserDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const user = await getUser(id);
+  const user = await getUserById(id);
   if (!user) {
     notFound();
   }
 
+  const statusLabel = user.deletedAt
+    ? t("adminUsers.statusDeleted")
+    : user.active
+      ? t("adminUsers.statusActive")
+      : t("adminUsers.statusInactive");
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{user.name || user.email}</h1>
-          <p className="text-muted-foreground">{user.email}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link href={`/admin/users/${id}/edit`}>Edit User</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={`/admin/users/${id}/change-password`}>Change Password</Link>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={user.name ?? user.email ?? id}
+        description={user.email ?? undefined}
+        actions={
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/users/${id}/edit`}>{t("adminUserDetail.editUser")}</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/users/${id}/change-password`}>{t("adminUserDetail.changePassword")}</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/users/${id}/activity`}>{t("adminUsers.activity")}</Link>
+            </Button>
+          </div>
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div>
-              <span className="font-medium">Name:</span> {user.name || "-"}
-            </div>
-            <div>
-              <span className="font-medium">Email:</span> {user.email}
-            </div>
-            <div>
-              <span className="font-medium">Role:</span>{" "}
-              <Badge variant="secondary">{user.roleName}</Badge>
-            </div>
-            <div>
-              <span className="font-medium">Status:</span>{" "}
-              <StatusBadge value={user.active ? "active" : "inactive"} />
-            </div>
-            {user.deletedAt && (
-              <div>
-                <span className="font-medium">Deleted:</span> {new Date(user.deletedAt).toLocaleDateString()}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <dl className="grid max-w-2xl grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+        <div>
+          <dt className="text-muted-foreground">{t("adminUserDetail.labelName")}</dt>
+          <dd className="text-foreground">{user.name ?? t("common.none")}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">{t("adminUserDetail.labelEmail")}</dt>
+          <dd className="text-foreground">{user.email ?? t("common.none")}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">{t("adminUserDetail.labelRole")}</dt>
+          <dd>
+            <Badge variant="secondary">{user.role.name}</Badge>
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">{t("adminUserDetail.labelStatus")}</dt>
+          <dd>
+            <StatusBadge
+              value={statusLabel}
+              tone={user.deletedAt ? "warning" : user.active ? "success" : "neutral"}
+            />
+          </dd>
+        </div>
+        {user.deletedAt ? (
+          <div>
+            <dt className="text-muted-foreground">{t("adminUserDetail.labelDeleted")}</dt>
+            <dd suppressHydrationWarning className="text-foreground">
+              {new Date(user.deletedAt).toLocaleString(dateLoc)}
+            </dd>
+          </div>
+        ) : null}
+      </dl>
+
+      <div className="pt-2">
+        <Link href="/admin/users" className="text-sm text-primary hover:underline">
+          {t("adminUserDetail.backToUsers")}
+        </Link>
       </div>
     </div>
   );

@@ -1,107 +1,42 @@
-"use client";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { PageHeader } from "@/components/app/page-header";
+import { getTranslator } from "@/lib/i18n/server";
+import { getUserById } from "@/lib/services/user-service";
 
-import { apiJson } from "@/lib/api-client";
+import { ChangePasswordForm } from "./change-password-form";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { InlineAlert } from "@/components/app/inline-alert";
+type PageProps = { params: Promise<{ id: string }> };
 
-const formSchema = z.object({
-  newPassword: z.string().min(8).max(200),
-});
+export default async function ChangePasswordPage(props: PageProps) {
+  const { t } = await getTranslator();
+  const { id } = await props.params;
 
-type FormData = z.infer<typeof formSchema>;
-
-export default function ChangePasswordPage() {
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const router = useRouter();
-  const params = useParams();
-  const id = params.id as string;
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      newPassword: "",
-    },
-  });
-
-  const onSubmit = async (data: FormData) => {
-    setSaving(true);
-    setError(null);
-    try {
-      await apiJson(`/api/users/${id}/change-password`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      setSuccess(true);
-      setTimeout(() => router.push(`/admin/users/${id}`), 2000);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (success) {
-    return (
-      <div className="space-y-6">
-        <InlineAlert>Password changed successfully. Redirecting...</InlineAlert>
-      </div>
-    );
+  const user = await getUserById(id);
+  if (!user) {
+    notFound();
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Change Password</h1>
-        <p className="text-muted-foreground">Reset the user's password.</p>
-      </div>
-
-      {error && <InlineAlert tone="danger">{error}</InlineAlert>}
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>New Password</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="newPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>New Password</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="password" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          <div className="flex gap-4">
-            <Button type="submit" disabled={saving}>
-              {saving ? "Changing..." : "Change Password"}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => router.back()}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </Form>
+    <div className="mx-auto max-w-lg space-y-4">
+      <PageHeader
+        title={t("adminUserChangePassword.pageTitle")}
+        description={user.email ?? undefined}
+      />
+      <ChangePasswordForm
+        userId={id}
+        labels={{
+          newPassword: t("adminForms.newPassword"),
+          hint: t("adminUserChangePassword.hint"),
+          change: t("adminForms.changePassword"),
+          changing: t("common.saving"),
+          couldNotChange: t("adminForms.couldNotChangePassword"),
+          successMessage: t("adminForms.passwordChanged"),
+          backToUser: t("adminUserChangePassword.backToUser"),
+        }}
+        backHref={`/admin/users/${id}`}
+      />
     </div>
   );
 }

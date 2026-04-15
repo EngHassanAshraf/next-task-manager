@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 
+import { PageHeader } from "@/components/app/page-header";
 import { authOptions } from "@/lib/auth";
 import { buildNewUserFormLabels } from "@/lib/i18n/label-builders";
 import { getTranslator } from "@/lib/i18n/server";
@@ -23,11 +24,11 @@ export default async function NewUserPage() {
   return (
     <div className="mx-auto max-w-lg space-y-4">
       <div className="flex items-center gap-3">
-        <Link href="/admin" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-          {t("common.backToAdmin")}
+        <Link href="/admin/users" className="text-sm text-primary hover:underline">
+          {t("adminUserDetail.backToUsers")}
         </Link>
       </div>
-      <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{t("adminUsers.newUser")}</h1>
+      <PageHeader title={t("adminUsers.newUser")} />
       <NewUserForm roles={roles} labels={buildNewUserFormLabels(t)} />
     </div>
   );

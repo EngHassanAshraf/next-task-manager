@@ -1,73 +1,79 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
+import { getTranslator } from "@/lib/i18n/server";
+import { getRoleById } from "@/lib/services/role-service";
+import { getPermissions } from "@/lib/services/permission-service";
 
-interface Role {
-  id: string;
-  name: string;
-  description: string | null;
-  permissions: Array<{
-    permission: {
-      id: string;
-      code: string;
-      description: string | null;
-    };
-  }>;
-}
+import { EditRoleForm } from "./edit-role-form";
 
-async function getRole(id: string): Promise<Role | null> {
-  const res = await fetch(`${process.env.NEXTAUTH_URL}/api/roles/${id}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) return null;
-  return res.json();
-}
+type PageProps = { params: Promise<{ id: string }> };
 
-export default async function RoleDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const role = await getRole(id);
+export default async function RoleDetailPage(props: PageProps) {
+  const { t } = await getTranslator();
+  const { id } = await props.params;
+
+  const [role, allPermissions] = await Promise.all([
+    getRoleById(id),
+    getPermissions(),
+  ]);
+
   if (!role) {
     notFound();
   }
 
+  const assignedIds = role.permissions.map((rp) => rp.permission.id);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{role.name}</h1>
-          <p className="text-muted-foreground">{role.description || "No description"}</p>
-        </div>
-        <Button asChild>
-          <Link href={`/admin/roles/${id}/edit`}>Edit Role</Link>
-        </Button>
-      </div>
+      <PageHeader
+        title={role.name}
+        description={role.description ?? undefined}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/roles">{t("adminRoles.backToRoles")}</Link>
+          </Button>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Permissions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {role.permissions.length > 0 ? (
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Current permissions summary */}
+        <div className="space-y-2">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            {t("adminRoles.tablePermissions")}
+          </h2>
+          <div className="flex flex-wrap gap-1">
+            {assignedIds.length === 0 ? (
+              <span className="text-sm text-muted-foreground">{t("adminRoles.noPermissions")}</span>
+            ) : (
               role.permissions.map((rp) => (
-                <Badge key={rp.permission.id} variant="outline">
+                <Badge key={rp.permission.id} variant="secondary" className="font-mono text-xs">
                   {rp.permission.code}
-                  {rp.permission.description && ` - ${rp.permission.description}`}
                 </Badge>
               ))
-            ) : (
-              <p className="text-muted-foreground">No permissions assigned</p>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {/* Edit form */}
+      <EditRoleForm
+        role={{ id: role.id, name: role.name, description: role.description }}
+        allPermissions={allPermissions.map((p) => ({ id: p.id, code: p.code, description: p.description }))}
+        assignedPermissionIds={assignedIds}
+        labels={{
+          roleName: t("adminForms.roleName"),
+          descriptionOptional: t("adminForms.descriptionOptional"),
+          editPermissions: t("adminRoles.editPermissions"),
+          editPermissionsHint: t("adminRoles.editPermissionsHint"),
+          save: t("adminForms.saveRole"),
+          saving: t("common.saving"),
+          couldNotSave: t("adminForms.couldNotSaveRole"),
+        }}
+      />
     </div>
   );
 }
