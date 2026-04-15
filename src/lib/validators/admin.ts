@@ -18,6 +18,11 @@ export const permissionCreateSchema = z.object({
   description: z.string().trim().max(500).nullable().optional(),
 });
 
+export const permissionUpdateSchema = z.object({
+  code: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(500).nullable().optional(),
+});
+
 export const userCreateSchema = z.object({
   email: z.string().trim().email(),
   password: z.string().min(8).max(200),

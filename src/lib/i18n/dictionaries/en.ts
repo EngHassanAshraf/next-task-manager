@@ -292,8 +292,11 @@ export const en = {
     tableActions: "Actions",
     noPermissions: "No permissions yet.",
     groupOther: "Other",
+    editTitle: "Edit permission",
+    backToPermissions: "← Permissions",
     deleteConfirm: "Delete this permission? This cannot be undone.",
     deleteFailed: "Could not delete permission.",
+    saveFailed: "Could not save permission.",
   },
   adminUserDetail: {
     pageTitle: "User",

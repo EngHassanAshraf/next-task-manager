@@ -290,8 +290,11 @@ export const ar = {
     tableActions: "إجراءات",
     noPermissions: "لا توجد صلاحيات بعد.",
     groupOther: "أخرى",
+    editTitle: "تعديل الصلاحية",
+    backToPermissions: "← الصلاحيات",
     deleteConfirm: "حذف هذه الصلاحية؟ لا يمكن التراجع.",
     deleteFailed: "تعذّر حذف الصلاحية.",
+    saveFailed: "تعذّر حفظ الصلاحية.",
   },
   adminUserDetail: {
     pageTitle: "المستخدم",

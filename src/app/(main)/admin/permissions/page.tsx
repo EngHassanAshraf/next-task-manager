@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { PageHeader } from "@/components/app/page-header";
 import { DataTableShell } from "@/components/app/data-table-shell";
 import { EmptyState } from "@/components/app/empty-state";
@@ -65,11 +67,19 @@ export default async function PermissionsPage() {
                         </div>
                       </td>
                       <td className="px-3 py-2">
-                        <DeletePermissionButton
-                          id={p.id}
-                          confirmMessage={t("adminPermissions.deleteConfirm")}
-                          failedMessage={t("adminPermissions.deleteFailed")}
-                        />
+                        <div className="flex items-center gap-3">
+                          <Link
+                            href={`/admin/permissions/${p.id}/edit`}
+                            className="text-xs text-primary hover:underline"
+                          >
+                            {t("common.edit")}
+                          </Link>
+                          <DeletePermissionButton
+                            id={p.id}
+                            confirmMessage={t("adminPermissions.deleteConfirm")}
+                            failedMessage={t("adminPermissions.deleteFailed")}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}
