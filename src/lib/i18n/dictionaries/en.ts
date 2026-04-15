@@ -170,12 +170,12 @@ export const en = {
         desc: "Register a site for tasks and malfunctions.",
       },
       newRole: {
-        title: "New role",
-        desc: "Define a role (e.g. team name or access tier).",
+        title: "Roles",
+        desc: "Manage roles and their permissions.",
       },
       newPermission: {
-        title: "New permission",
-        desc: "Add a permission code for RBAC.",
+        title: "Permissions",
+        desc: "Manage permission codes for RBAC.",
       },
       linkRolePermission: {
         title: "Link role to permission",

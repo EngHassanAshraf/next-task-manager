@@ -47,10 +47,6 @@ export function canEditAchievement(
   return ownerUserId === userId;
 }
 
-export function canManageUsers(roleName: string): boolean {
-  return roleName === "ADMIN";
-}
-
 /** Full admin: users, roles, permissions, sites */
 export function isAdmin(roleName: string | undefined): boolean {
   return roleName === "ADMIN";

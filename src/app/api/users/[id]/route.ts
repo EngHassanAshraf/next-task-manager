@@ -41,6 +41,17 @@ export async function PUT(request: Request, context: Ctx) {
   }
   const v = parsed.data;
 
+  // Validate role exists if being changed
+  if (v.roleId && v.roleId !== target.roleId) {
+    const chosenRole = await prisma.role.findUnique({ where: { id: v.roleId } });
+    if (!chosenRole) {
+      return badRequest("Invalid role.");
+    }
+    if (siteAdminCannotManageAdminRole(session!.user.roleName, chosenRole.name)) {
+      return forbidden();
+    }
+  }
+
   // Check if email is being changed and if it's unique
   if (v.email && v.email !== target.email) {
     const existing = await prisma.user.findUnique({ where: { email: v.email } });

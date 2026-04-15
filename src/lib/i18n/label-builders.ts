@@ -206,6 +206,8 @@ export type UsersAdminTableLabels = {
   statusDeleted: string;
   statusActive: string;
   statusInactive: string;
+  view: string;
+  edit: string;
   activity: string;
   deactivate: string;
   activate: string;
@@ -228,6 +230,8 @@ export function buildUsersAdminTableLabels(t: Translator): UsersAdminTableLabels
     statusDeleted: t("adminUsers.statusDeleted"),
     statusActive: t("adminUsers.statusActive"),
     statusInactive: t("adminUsers.statusInactive"),
+    view: t("tasks.view"),
+    edit: t("common.edit"),
     activity: t("adminUsers.activity"),
     deactivate: t("adminUsers.deactivate"),
     activate: t("adminUsers.activate"),

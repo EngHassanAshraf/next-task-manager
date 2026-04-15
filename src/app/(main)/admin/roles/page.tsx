@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { getTranslator } from "@/lib/i18n/server";
 import { getRoles } from "@/lib/services/role-service";
 
+import { DeleteRoleButton } from "./delete-role-button";
+
 export default async function RolesPage() {
   const { t } = await getTranslator();
   const roles = await getRoles();
@@ -58,13 +60,18 @@ export default async function RolesPage() {
                   </div>
                 </td>
                 <td className="px-3 py-2">
-                  <div className="flex gap-3">
+                  <div className="flex items-center gap-3">
                     <Link
                       href={`/admin/roles/${role.id}`}
                       className="text-xs text-primary hover:underline"
                     >
                       {t("common.edit")}
                     </Link>
+                    <DeleteRoleButton
+                      id={role.id}
+                      confirmMessage={t("adminRoles.deleteConfirm")}
+                      failedMessage={t("adminRoles.deleteFailed")}
+                    />
                   </div>
                 </td>
               </tr>

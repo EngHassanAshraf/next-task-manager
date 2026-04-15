@@ -8,8 +8,8 @@ import { isAdmin } from "@/lib/rbac";
 
 const systemCards = [
   { href: "/admin/sites/new", titleKey: "admin.cards.newSite.title", descKey: "admin.cards.newSite.desc" },
-  { href: "/admin/roles/new", titleKey: "admin.cards.newRole.title", descKey: "admin.cards.newRole.desc" },
-  { href: "/admin/permissions/new", titleKey: "admin.cards.newPermission.title", descKey: "admin.cards.newPermission.desc" },
+  { href: "/admin/roles", titleKey: "admin.cards.newRole.title", descKey: "admin.cards.newRole.desc" },
+  { href: "/admin/permissions", titleKey: "admin.cards.newPermission.title", descKey: "admin.cards.newPermission.desc" },
   {
     href: "/admin/role-permissions/new",
     titleKey: "admin.cards.linkRolePermission.title",
