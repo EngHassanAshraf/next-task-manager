@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useState, useMemo } from "react";
-import { Search, ExternalLink } from "lucide-react";
+import { Search, ExternalLink, Trash2 } from "lucide-react";
 
 import { StatusBadge } from "@/components/status-badge";
 import { DataTableShell } from "@/components/app/data-table-shell";
 import { EmptyState } from "@/components/app/empty-state";
+import { apiJson } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import type { TaskStatus } from "@/lib/constants";
 
@@ -23,6 +24,7 @@ type TaskRow = {
   createdDatetime: string | Date;
   startDatetime: string | Date | null;
   endClosedDatetime: string | Date | null;
+  canDelete?: boolean;
 };
 
 export type TasksTableLabels = {
@@ -36,6 +38,8 @@ export type TasksTableLabels = {
   noTasks: string;
   updateFailed: string;
   searchPlaceholder?: string;
+  deleteConfirm?: string;
+  deleteFailed?: string;
 };
 
 const STATUS_ORDER: Record<TaskStatus, number> = {
@@ -63,10 +67,15 @@ export function TasksTable({
   locale: string;
 }) {
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [rows, setRows] = useState(tasks);
+
+  // Keep rows in sync if parent re-renders
+  useMemo(() => setRows(tasks), [tasks]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const base = [...tasks].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
+    const base = [...rows].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
     if (!q) return base;
     return base.filter(
       (t) =>
@@ -75,7 +84,20 @@ export function TasksTable({
         t.status.toLowerCase().includes(q) ||
         t.malfunction?.title.toLowerCase().includes(q)
     );
-  }, [tasks, search]);
+  }, [rows, search]);
+
+  async function handleDelete(id: string) {
+    if (!window.confirm(labels.deleteConfirm ?? "Delete this task?")) return;
+    setDeletingId(id);
+    try {
+      await apiJson(`/api/tasks/${id}`, { method: "DELETE" });
+      setRows((prev) => prev.filter((t) => t.id !== id));
+    } catch {
+      // error is swallowed — row stays in list
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -119,6 +141,7 @@ export function TasksTable({
               <th className="border-b border-border px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {labels.endClosed}
               </th>
+              <th className="border-b border-border px-2 py-3 w-8" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
@@ -167,6 +190,20 @@ export function TasksTable({
                   {t.endClosedDatetime
                     ? new Date(t.endClosedDatetime).toLocaleString(locale)
                     : <span className="text-muted-foreground/40">—</span>}
+                </td>
+                {/* Delete — only shown if permitted */}
+                <td className="px-2 py-3.5">
+                  {t.canDelete ? (
+                    <button
+                      type="button"
+                      disabled={deletingId === t.id}
+                      onClick={() => handleDelete(t.id)}
+                      className="rounded p-1 text-muted-foreground/40 opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive disabled:opacity-30"
+                      aria-label="Delete task"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  ) : null}
                 </td>
               </tr>
             ))}

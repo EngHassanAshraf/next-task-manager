@@ -3,17 +3,17 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
-import { badRequest, tooManyRequests, unauthorized } from "@/lib/api-response";
+import { badRequest, forbidden, tooManyRequests, unauthorized } from "@/lib/api-response";
 import { getClientIp, hashSessionToken } from "@/lib/auth-session";
+import { canChangeOwnPassword } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { passwordPatchSchema } from "@/lib/validators/account";
 
 export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return unauthorized();
-  }
+  if (!session?.user?.id) return unauthorized();
+  if (!canChangeOwnPassword(session.user.roleName)) return forbidden();
   const rl = rateLimit({
     key: `api:account:password:${session.user.id}`,
     limit: 10,

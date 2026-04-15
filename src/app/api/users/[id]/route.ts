@@ -6,7 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { badRequest, forbidden, notFound, tooManyRequests } from "@/lib/api-response";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
-import { siteAdminCannotManageAdminRole } from "@/lib/user-account-policy";
+import { canModifyTargetUser } from "@/lib/rbac";
 import { userStatusPatchSchema, userUpdateSchema } from "@/lib/validators/admin";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -30,7 +30,7 @@ export async function PUT(request: Request, context: Ctx) {
   if (!target) {
     return notFound();
   }
-  if (siteAdminCannotManageAdminRole(session!.user.roleName, target.role.name)) {
+  if (!canModifyTargetUser(session!.user.roleName, session!.user.id, target.role.name, id)) {
     return forbidden();
   }
 
@@ -47,7 +47,7 @@ export async function PUT(request: Request, context: Ctx) {
     if (!chosenRole) {
       return badRequest("Invalid role.");
     }
-    if (siteAdminCannotManageAdminRole(session!.user.roleName, chosenRole.name)) {
+    if (!canModifyTargetUser(session!.user.roleName, session!.user.id, chosenRole.name, id)) {
       return forbidden();
     }
   }
@@ -87,7 +87,7 @@ export async function PATCH(request: Request, context: Ctx) {
   if (!target) {
     return notFound();
   }
-  if (siteAdminCannotManageAdminRole(session!.user.roleName, target.role.name)) {
+  if (!canModifyTargetUser(session!.user.roleName, session!.user.id, target.role.name, id)) {
     return forbidden();
   }
 
@@ -135,7 +135,7 @@ export async function DELETE(_request: Request, context: Ctx) {
   if (!target) {
     return notFound();
   }
-  if (siteAdminCannotManageAdminRole(session!.user.roleName, target.role.name)) {
+  if (!canModifyTargetUser(session!.user.roleName, session!.user.id, target.role.name, id)) {
     return forbidden();
   }
   if (target.deletedAt) {

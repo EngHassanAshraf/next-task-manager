@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useState, useMemo } from "react";
-import { Search, ExternalLink } from "lucide-react";
+import { Search, ExternalLink, Trash2 } from "lucide-react";
 
 import { StatusBadge } from "@/components/status-badge";
 import { DataTableShell } from "@/components/app/data-table-shell";
 import { EmptyState } from "@/components/app/empty-state";
+import { apiJson } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import type { MalfunctionStatus } from "@/lib/constants";
 
@@ -20,6 +21,7 @@ type Row = {
   status: MalfunctionStatus;
   createdDatetime: string | Date;
   endClosedDatetime: string | Date | null;
+  canDelete?: boolean;
 };
 
 export type MalfunctionsTableLabels = {
@@ -37,6 +39,8 @@ export type MalfunctionsTableLabels = {
   noRows: string;
   updateFailed: string;
   searchPlaceholder?: string;
+  deleteConfirm?: string;
+  deleteFailed?: string;
 };
 
 const STATUS_ORDER: Record<MalfunctionStatus, number> = {
@@ -62,10 +66,14 @@ export function MalfunctionsTable({
   locale: string;
 }) {
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [rows, setRows] = useState(malfunctions);
+
+  useMemo(() => setRows(malfunctions), [malfunctions]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const base = [...malfunctions].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
+    const base = [...rows].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
     if (!q) return base;
     return base.filter(
       (m) =>
@@ -74,7 +82,20 @@ export function MalfunctionsTable({
         m.status.toLowerCase().includes(q) ||
         (m.reporter.name ?? m.reporter.email ?? "").toLowerCase().includes(q)
     );
-  }, [malfunctions, search]);
+  }, [rows, search]);
+
+  async function handleDelete(id: string) {
+    if (!window.confirm(labels.deleteConfirm ?? "Delete this malfunction?")) return;
+    setDeletingId(id);
+    try {
+      await apiJson(`/api/malfunctions/${id}`, { method: "DELETE" });
+      setRows((prev) => prev.filter((m) => m.id !== id));
+    } catch {
+      // error swallowed
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -121,6 +142,7 @@ export function MalfunctionsTable({
               <th className="border-b border-border px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {labels.endClosed}
               </th>
+              <th className="border-b border-border px-2 py-3 w-8" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
@@ -169,6 +191,19 @@ export function MalfunctionsTable({
                   {m.endClosedDatetime
                     ? new Date(m.endClosedDatetime).toLocaleString(locale)
                     : <span className="text-muted-foreground/40">—</span>}
+                </td>
+                <td className="px-2 py-3.5">
+                  {m.canDelete ? (
+                    <button
+                      type="button"
+                      disabled={deletingId === m.id}
+                      onClick={() => handleDelete(m.id)}
+                      className="rounded p-1 text-muted-foreground/40 opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive disabled:opacity-30"
+                      aria-label="Delete malfunction"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  ) : null}
                 </td>
               </tr>
             ))}

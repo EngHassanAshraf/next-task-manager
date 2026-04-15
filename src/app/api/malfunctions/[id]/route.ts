@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
 import { badRequest, forbidden, notFound, unauthorized } from "@/lib/api-response";
-import { canEditMalfunction } from "@/lib/rbac";
+import { canAccessOperations, canEditMalfunction, canDeleteMalfunction } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { updateMalfunctionFull } from "@/lib/services/malfunction-service";
+import { updateMalfunctionFull, deleteMalfunction } from "@/lib/services/malfunction-service";
 import { malfunctionCreateSchema } from "@/lib/validators/malfunction";
 
 const include = {
@@ -19,45 +19,39 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: Ctx) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return unauthorized();
-  }
+  if (!session?.user?.id) return unauthorized();
+  if (!canAccessOperations(session.user.roleName)) return forbidden();
+
   const { id } = await context.params;
-  const row = await prisma.malfunction.findUnique({
-    where: { id },
-    include,
-  });
-  if (!row) {
-    return notFound();
+  const row = await prisma.malfunction.findUnique({ where: { id }, include });
+  if (!row) return notFound();
+
+  if (!canEditMalfunction(session.user.roleName, session.user.id, row)) {
+    return forbidden();
   }
+
   const statusHistory = await prisma.statusHistory.findMany({
     where: { entityType: "MALFUNCTION", entityId: id },
     orderBy: { changedDatetime: "desc" },
-    include: {
-      changedBy: { select: { id: true, name: true, email: true } },
-    },
+    include: { changedBy: { select: { id: true, name: true, email: true } } },
   });
   return NextResponse.json({ ...row, statusHistory });
 }
 
 export async function PUT(request: Request, context: Ctx) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return unauthorized();
-  }
+  if (!session?.user?.id) return unauthorized();
+  if (!canAccessOperations(session.user.roleName)) return forbidden();
+
   const { id } = await context.params;
   const existing = await prisma.malfunction.findUnique({ where: { id } });
-  if (!existing) {
-    return notFound();
-  }
-  if (!canEditMalfunction(session.user.roleName, session.user.id, existing)) {
-    return forbidden();
-  }
+  if (!existing) return notFound();
+  if (!canEditMalfunction(session.user.roleName, session.user.id, existing)) return forbidden();
+
   const body = await request.json().catch(() => null);
   const parsed = malfunctionCreateSchema.safeParse(body);
-  if (!parsed.success) {
-    return badRequest(parsed.error.message);
-  }
+  if (!parsed.success) return badRequest(parsed.error.message);
+
   const v = parsed.data;
   await updateMalfunctionFull(
     id,
@@ -72,9 +66,20 @@ export async function PUT(request: Request, context: Ctx) {
     },
     session.user.id
   );
-  const row = await prisma.malfunction.findUniqueOrThrow({
-    where: { id },
-    include,
-  });
+  const row = await prisma.malfunction.findUniqueOrThrow({ where: { id }, include });
   return NextResponse.json(row);
+}
+
+export async function DELETE(_request: Request, context: Ctx) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return unauthorized();
+  if (!canAccessOperations(session.user.roleName)) return forbidden();
+
+  const { id } = await context.params;
+  const existing = await prisma.malfunction.findUnique({ where: { id } });
+  if (!existing) return notFound();
+  if (!canDeleteMalfunction(session.user.roleName, session.user.id, existing)) return forbidden();
+
+  await deleteMalfunction(id);
+  return NextResponse.json({ ok: true });
 }

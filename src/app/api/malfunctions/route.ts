@@ -1,12 +1,12 @@
-import type { Prisma } from "@/generated/prisma/client";
 import { MalfunctionStatus } from "@/generated/prisma/client";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authOptions } from "@/lib/auth";
-import { badRequest, unauthorized } from "@/lib/api-response";
+import { badRequest, forbidden, unauthorized } from "@/lib/api-response";
+import { canAccessOperations } from "@/lib/rbac";
+import { listMalfunctions, createMalfunction } from "@/lib/services/malfunction-service";
 import { prisma } from "@/lib/prisma";
-import { createMalfunction } from "@/lib/services/malfunction-service";
 import { malfunctionCreateSchema } from "@/lib/validators/malfunction";
 
 const include = {
@@ -18,42 +18,38 @@ const include = {
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return unauthorized();
-  }
+  if (!session?.user?.id) return unauthorized();
+  if (!canAccessOperations(session.user.roleName)) return forbidden();
+
   const { searchParams } = new URL(request.url);
   const siteId = searchParams.get("siteId") ?? undefined;
-  const status = searchParams.get("status") as MalfunctionStatus | null;
+  const statusParam = searchParams.get("status") as MalfunctionStatus | null;
   const reporterId = searchParams.get("reporterId") ?? undefined;
   const hasTask = searchParams.get("hasTask");
 
-  const where: Prisma.MalfunctionWhereInput = {};
-  if (siteId) where.siteId = siteId;
-  if (status && Object.values(MalfunctionStatus).includes(status)) {
-    where.status = status;
-  }
-  if (reporterId) where.reporterUserId = reporterId;
-  if (hasTask === "true") where.taskId = { not: null };
-  if (hasTask === "false") where.taskId = null;
-
-  const rows = await prisma.malfunction.findMany({
-    where,
-    orderBy: { createdDatetime: "desc" },
-    include,
+  const rows = await listMalfunctions({
+    roleName: session.user.roleName,
+    userId: session.user.id,
+    siteId,
+    status:
+      statusParam && Object.values(MalfunctionStatus).includes(statusParam)
+        ? statusParam
+        : undefined,
+    reporterId,
+    hasTask: hasTask === "true" ? true : hasTask === "false" ? false : undefined,
   });
   return NextResponse.json(rows);
 }
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return unauthorized();
-  }
+  if (!session?.user?.id) return unauthorized();
+  if (!canAccessOperations(session.user.roleName)) return forbidden();
+
   const body = await request.json().catch(() => null);
   const parsed = malfunctionCreateSchema.safeParse(body);
-  if (!parsed.success) {
-    return badRequest(parsed.error.message);
-  }
+  if (!parsed.success) return badRequest(parsed.error.message);
+
   const v = parsed.data;
   const { id } = await createMalfunction(
     {
@@ -67,9 +63,6 @@ export async function POST(request: Request) {
     },
     session.user.id
   );
-  const row = await prisma.malfunction.findUniqueOrThrow({
-    where: { id },
-    include,
-  });
+  const row = await prisma.malfunction.findUniqueOrThrow({ where: { id }, include });
   return NextResponse.json(row, { status: 201 });
 }

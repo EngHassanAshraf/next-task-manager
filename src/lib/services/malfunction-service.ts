@@ -2,11 +2,54 @@ import type { MalfunctionStatus, Prisma } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { recordStatusHistory } from "@/lib/services/status-history";
+import { malfunctionVisibilityWhere } from "@/lib/rbac";
 
 export type MalfunctionCreateInput = Omit<
   Prisma.MalfunctionUncheckedCreateInput,
   "createdByUserId"
 >;
+
+export type MalfunctionListOptions = {
+  roleName: string;
+  userId: string;
+  siteId?: string;
+  status?: MalfunctionStatus;
+  reporterId?: string;
+  hasTask?: boolean;
+};
+
+const malfunctionInclude = {
+  site: true,
+  reporter: { select: { id: true, name: true, email: true } },
+  task: { select: { id: true, desc: true, status: true } },
+  createdBy: { select: { id: true, name: true, email: true } },
+} as const;
+
+export async function listMalfunctions(opts: MalfunctionListOptions) {
+  const visibilityFilter = malfunctionVisibilityWhere(opts.roleName, opts.userId);
+  const where: Prisma.MalfunctionWhereInput = { ...visibilityFilter };
+  if (opts.siteId) where.siteId = opts.siteId;
+  if (opts.status) where.status = opts.status;
+  if (opts.reporterId) where.reporterUserId = opts.reporterId;
+  if (opts.hasTask === true) where.taskId = { not: null };
+  if (opts.hasTask === false) where.taskId = null;
+  return prisma.malfunction.findMany({
+    where,
+    orderBy: { createdDatetime: "desc" },
+    include: malfunctionInclude,
+  });
+}
+
+export async function countMalfunctions(
+  opts: Pick<MalfunctionListOptions, "roleName" | "userId">
+): Promise<number> {
+  const visibilityFilter = malfunctionVisibilityWhere(opts.roleName, opts.userId);
+  return prisma.malfunction.count({ where: visibilityFilter ?? {} });
+}
+
+export async function deleteMalfunction(id: string): Promise<void> {
+  await prisma.malfunction.delete({ where: { id } });
+}
 
 function applyMalfunctionStatusSideEffects(
   status: MalfunctionStatus,

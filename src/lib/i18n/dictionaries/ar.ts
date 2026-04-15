@@ -42,6 +42,7 @@ export const ar = {
     updateFailed: "فشل التحديث",
     deleteFailed: "فشل الحذف",
     confirmDeleteUser: "إزالة هذا المستخدم نهائياً؟ لن يتمكن من تسجيل الدخول مرة أخرى.",
+    confirmDelete: "حذف هذا السجل؟ لا يمكن التراجع.",
     none: "—",
     noneList: "لا يوجد.",
     noneYet: "لا يوجد بعد.",

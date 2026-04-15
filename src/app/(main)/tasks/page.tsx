@@ -1,12 +1,16 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 
 import { Pagination } from "@/components/pagination";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
+import { authOptions } from "@/lib/auth";
 import { buildPaginationLabels } from "@/lib/i18n/label-builders";
 import { dateLocaleFor, getTranslator } from "@/lib/i18n/server";
 import { parsePositiveInt } from "@/lib/pagination";
-import { prisma } from "@/lib/prisma";
+import { canAccessOperations, canDeleteTask, isStaff } from "@/lib/rbac";
+import { listTasks, countTasks } from "@/lib/services/task-service";
 
 import { TasksTable } from "./tasks-table";
 
@@ -15,6 +19,10 @@ type PageProps = {
 };
 
 export default async function TasksPage(props: PageProps) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) redirect("/login");
+  if (!canAccessOperations(session.user.roleName)) redirect("/account");
+
   const { locale, t } = await getTranslator();
   const dateLocale = dateLocaleFor(locale);
   const sp = (await props.searchParams) ?? {};
@@ -22,20 +30,19 @@ export default async function TasksPage(props: PageProps) {
   const page = parsePositiveInt(sp.page, 1, 1000000);
   const skip = (page - 1) * pageSize;
 
-  const [total, tasks] = await Promise.all([
-    prisma.task.count(),
-    prisma.task.findMany({
-      orderBy: [{ createdDatetime: "desc" }, { id: "desc" }],
-      take: pageSize,
-      skip,
-    include: {
-      site: true,
-      assignmentTo: { select: { id: true, name: true, email: true } },
-      malfunction: { select: { id: true, title: true } },
-      createdBy: { select: { id: true, name: true, email: true } },
-    },
-    }),
+  const [total, allTasks] = await Promise.all([
+    countTasks({ roleName: session.user.roleName, userId: session.user.id }),
+    listTasks({ roleName: session.user.roleName, userId: session.user.id }),
   ]);
+
+  // Paginate after scoped fetch (list is already filtered)
+  const tasks = allTasks.slice(skip, skip + pageSize);
+
+  // Determine per-row delete permission
+  const tasksWithPerms = tasks.map((task) => ({
+    ...task,
+    canDelete: canDeleteTask(session.user.roleName, session.user.id, task),
+  }));
 
   return (
     <div className="space-y-4">
@@ -52,7 +59,6 @@ export default async function TasksPage(props: PageProps) {
           </Button>
         }
       />
-
       <Pagination
         page={page}
         pageSize={pageSize}
@@ -62,7 +68,7 @@ export default async function TasksPage(props: PageProps) {
         locale={dateLocale}
       />
       <TasksTable
-        tasks={tasks}
+        tasks={tasksWithPerms}
         locale={dateLocale}
         labels={{
           description: t("tasks.description"),
@@ -74,6 +80,8 @@ export default async function TasksPage(props: PageProps) {
           endClosed: t("tasks.endClosed"),
           noTasks: t("tasks.noTasks"),
           updateFailed: t("tasks.updateFailed"),
+          deleteConfirm: t("common.confirmDelete"),
+          deleteFailed: t("common.deleteFailed"),
         }}
       />
     </div>

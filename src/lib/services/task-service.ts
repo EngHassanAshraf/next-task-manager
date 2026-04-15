@@ -2,11 +2,48 @@ import type { Prisma, TaskStatus } from "@/generated/prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { recordStatusHistory } from "@/lib/services/status-history";
+import { taskVisibilityWhere } from "@/lib/rbac";
 
 export type TaskCreateInput = Omit<
   Prisma.TaskUncheckedCreateInput,
   "createdByUserId"
 >;
+
+export type TaskListOptions = {
+  roleName: string;
+  userId: string;
+  siteId?: string;
+  status?: TaskStatus;
+  assigneeId?: string;
+  hasMalfunction?: boolean;
+};
+
+const taskInclude = {
+  site: true,
+  assignmentTo: { select: { id: true, name: true, email: true } },
+  malfunction: { select: { id: true, title: true } },
+  createdBy: { select: { id: true, name: true, email: true } },
+} as const;
+
+export async function listTasks(opts: TaskListOptions) {
+  const visibilityFilter = taskVisibilityWhere(opts.roleName, opts.userId);
+  const where: Prisma.TaskWhereInput = { ...visibilityFilter };
+  if (opts.siteId) where.siteId = opts.siteId;
+  if (opts.status) where.status = opts.status;
+  if (opts.assigneeId) where.assignmentToUserId = opts.assigneeId;
+  if (opts.hasMalfunction === true) where.malfunctionId = { not: null };
+  if (opts.hasMalfunction === false) where.malfunctionId = null;
+  return prisma.task.findMany({
+    where,
+    orderBy: { createdDatetime: "desc" },
+    include: taskInclude,
+  });
+}
+
+export async function countTasks(opts: Pick<TaskListOptions, "roleName" | "userId">): Promise<number> {
+  const visibilityFilter = taskVisibilityWhere(opts.roleName, opts.userId);
+  return prisma.task.count({ where: visibilityFilter ?? {} });
+}
 
 function applyTaskStatusSideEffects(
   status: TaskStatus,
@@ -147,4 +184,8 @@ export async function patchTaskStatus(
       );
     }
   }
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  await prisma.task.delete({ where: { id } });
 }
