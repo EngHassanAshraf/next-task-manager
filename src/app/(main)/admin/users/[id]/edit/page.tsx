@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/app/page-header";
 import { authOptions } from "@/lib/auth";
 import { getTranslator } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
-import { isAdmin } from "@/lib/rbac";
+import { isSuperAdmin, isDepAdmin } from "@/lib/rbac";
 import { getUserById } from "@/lib/services/user-service";
 
 import { EditUserForm } from "./edit-user-form";
@@ -23,13 +23,14 @@ export default async function EditUserPage(props: PageProps) {
     prisma.role.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
-  if (!user) {
-    notFound();
-  }
+  if (!user) notFound();
 
-  // SITE_ADMIN cannot see/edit ADMIN users
-  const actorIsAdmin = isAdmin(session?.user?.roleName);
-  const roles = actorIsAdmin ? allRoles : allRoles.filter((r) => r.name !== "ADMIN");
+  const actorRole = session?.user?.roleName;
+  const roles = allRoles.filter((r) => {
+    if (isSuperAdmin(r.name)) return false;
+    if (isDepAdmin(r.name) && !isSuperAdmin(actorRole)) return false;
+    return true;
+  });
 
   return (
     <div className="mx-auto max-w-lg space-y-4">

@@ -1,237 +1,186 @@
 import type { Session } from "next-auth";
 
 // ─── Role constants ────────────────────────────────────────────────────────────
-// Existing DB roles (do not rename — matches seed data):
-//   SUPER_ADMIN  – override everything
-//   ADMIN        – department-admin: full access, peer-admin ownership isolation
-//   MANAGER      – site-manager: own/assigned scope + delete
-//   STAFF        – site-admin: own/assigned scope, no delete
-//   SITE_ADMIN   – user-account manager only (no operational data access)
+// DB roles:
+//   SUPER_ADMIN   – full override, system admin
+//   DEP_ADMIN     – department admin: full access, peer-admin ownership isolation
+//   SITE_MANAGER  – own/assigned scope + can delete
+//   SITE_ADMIN    – own/assigned scope, no delete, no reports/admin
 
 export const ROLE = {
-  SUPER_ADMIN: "SUPER_ADMIN",
-  ADMIN:       "ADMIN",
-  MANAGER:     "MANAGER",
-  STAFF:       "STAFF",
-  SITE_ADMIN:  "SITE_ADMIN",
+  SUPER_ADMIN:  "SUPER_ADMIN",
+  DEP_ADMIN:    "DEP_ADMIN",
+  SITE_MANAGER: "SITE_MANAGER",
+  SITE_ADMIN:   "SITE_ADMIN",
 } as const;
 
 export type RoleName = (typeof ROLE)[keyof typeof ROLE];
 
 // ─── Tier helpers ──────────────────────────────────────────────────────────────
 
-export function isSuperAdmin(roleName: string | undefined): boolean {
-  return roleName === ROLE.SUPER_ADMIN;
+export function isSuperAdmin(r: string | undefined): boolean {
+  return r === ROLE.SUPER_ADMIN;
 }
 
-/** Full system admin (department-admin). */
-export function isAdmin(roleName: string | undefined): boolean {
-  return roleName === ROLE.ADMIN;
+export function isDepAdmin(r: string | undefined): boolean {
+  return r === ROLE.DEP_ADMIN;
 }
 
-/** User-account manager only (no operational data). */
-export function isSiteAdmin(roleName: string | undefined): boolean {
-  return roleName === ROLE.SITE_ADMIN;
+export function isSiteManager(r: string | undefined): boolean {
+  return r === ROLE.SITE_MANAGER;
 }
 
-/** site-manager: own/assigned scope + delete. */
-export function isManager(roleName: string | undefined): boolean {
-  return roleName === ROLE.MANAGER;
+export function isSiteAdmin(r: string | undefined): boolean {
+  return r === ROLE.SITE_ADMIN;
 }
 
-/** site-admin (STAFF): own/assigned scope, no delete. */
-export function isStaff(roleName: string | undefined): boolean {
-  return roleName === ROLE.STAFF;
+// ─── Access gates ──────────────────────────────────────────────────────────────
+
+/** Tasks, malfunctions — all roles except none. */
+export function canAccessOperations(r: string | undefined): boolean {
+  return isSuperAdmin(r) || isDepAdmin(r) || isSiteManager(r) || isSiteAdmin(r);
 }
 
-// ─── Operational access ────────────────────────────────────────────────────────
-
-/**
- * Can the user access operational modules at all?
- * SITE_ADMIN is a user-account manager only — no tasks/malfunctions/reports.
- */
-export function canAccessOperations(roleName: string | undefined): boolean {
-  return (
-    isSuperAdmin(roleName) ||
-    isAdmin(roleName) ||
-    isManager(roleName) ||
-    isStaff(roleName)
-  );
+/** Reports, achievements — DEP_ADMIN and above only. */
+export function canAccessAnalytics(r: string | undefined): boolean {
+  return isSuperAdmin(r) || isDepAdmin(r);
 }
 
-/**
- * Can the user access analytics (reports, achievements)?
- * Only ADMIN and above.
- */
-export function canAccessAnalytics(roleName: string | undefined): boolean {
-  return isSuperAdmin(roleName) || isAdmin(roleName);
+/** Admin panel entry — DEP_ADMIN and above. */
+export function canAccessAdminPanel(r: string | undefined): boolean {
+  return isSuperAdmin(r) || isDepAdmin(r);
 }
 
-// ─── Task / Malfunction visibility ────────────────────────────────────────────
+/** User account management (create/edit/deactivate users). */
+export function canManageUserAccounts(r: string | undefined): boolean {
+  return isSuperAdmin(r) || isDepAdmin(r);
+}
 
-/**
- * Returns a Prisma `where` fragment that scopes tasks to what the user may see.
- * ADMIN/SUPER_ADMIN → all tasks.
- * MANAGER/STAFF     → only tasks they created or are assigned to.
- */
+// ─── Visibility filters (Prisma where fragments) ──────────────────────────────
+
 export function taskVisibilityWhere(
-  roleName: string | undefined,
+  r: string | undefined,
   userId: string
-): { createdByUserId?: string; assignmentToUserId?: string } | undefined {
-  if (isSuperAdmin(roleName) || isAdmin(roleName)) {
-    return undefined; // no filter — see all
-  }
-  // MANAGER and STAFF see only own/assigned
-  return {
-    OR: [
-      { createdByUserId: userId },
-      { assignmentToUserId: userId },
-    ],
-  } as never;
+): object | undefined {
+  if (isSuperAdmin(r) || isDepAdmin(r)) return undefined; // see all
+  return { OR: [{ createdByUserId: userId }, { assignmentToUserId: userId }] };
 }
 
-/**
- * Returns a Prisma `where` fragment that scopes malfunctions to what the user may see.
- */
 export function malfunctionVisibilityWhere(
-  roleName: string | undefined,
+  r: string | undefined,
   userId: string
-): { createdByUserId?: string; reporterUserId?: string } | undefined {
-  if (isSuperAdmin(roleName) || isAdmin(roleName)) {
-    return undefined;
-  }
-  return {
-    OR: [
-      { createdByUserId: userId },
-      { reporterUserId: userId },
-    ],
-  } as never;
+): object | undefined {
+  if (isSuperAdmin(r) || isDepAdmin(r)) return undefined;
+  return { OR: [{ createdByUserId: userId }, { reporterUserId: userId }] };
 }
 
-// ─── Edit / update checks ──────────────────────────────────────────────────────
+// ─── Edit checks ──────────────────────────────────────────────────────────────
 
 export function canEditTask(
-  roleName: string | undefined,
+  r: string | undefined,
   userId: string,
   task: { createdByUserId: string; assignmentToUserId: string | null }
 ): boolean {
-  if (isSuperAdmin(roleName) || isAdmin(roleName)) return true;
-  // MANAGER and STAFF can edit own/assigned
-  if (isManager(roleName) || isStaff(roleName)) {
+  if (isSuperAdmin(r) || isDepAdmin(r)) return true;
+  if (isSiteManager(r) || isSiteAdmin(r)) {
     return task.createdByUserId === userId || task.assignmentToUserId === userId;
   }
   return false;
 }
 
 export function canEditMalfunction(
-  roleName: string | undefined,
+  r: string | undefined,
   userId: string,
   m: { createdByUserId: string; reporterUserId: string }
 ): boolean {
-  if (isSuperAdmin(roleName) || isAdmin(roleName)) return true;
-  if (isManager(roleName) || isStaff(roleName)) {
+  if (isSuperAdmin(r) || isDepAdmin(r)) return true;
+  if (isSiteManager(r) || isSiteAdmin(r)) {
     return m.createdByUserId === userId || m.reporterUserId === userId;
   }
   return false;
 }
 
 export function canEditAchievement(
-  roleName: string | undefined,
+  r: string | undefined,
   userId: string,
   ownerUserId: string
 ): boolean {
-  if (isSuperAdmin(roleName) || isAdmin(roleName)) return true;
+  if (isSuperAdmin(r) || isDepAdmin(r)) return true;
   return ownerUserId === userId;
 }
 
 // ─── Delete checks ─────────────────────────────────────────────────────────────
 
-/** STAFF (site-admin) cannot delete tasks. MANAGER and above can. */
+/** SITE_ADMIN cannot delete. SITE_MANAGER can delete own/assigned. DEP_ADMIN own only (peer isolation). */
 export function canDeleteTask(
-  roleName: string | undefined,
+  r: string | undefined,
   userId: string,
   task: { createdByUserId: string; assignmentToUserId: string | null }
 ): boolean {
-  if (isSuperAdmin(roleName)) return true;
-  // ADMIN: can delete only own tasks (peer-admin ownership isolation)
-  if (isAdmin(roleName)) return task.createdByUserId === userId;
-  // MANAGER: can delete own/assigned
-  if (isManager(roleName)) {
+  if (isSuperAdmin(r)) return true;
+  if (isDepAdmin(r)) return task.createdByUserId === userId; // peer isolation
+  if (isSiteManager(r)) {
     return task.createdByUserId === userId || task.assignmentToUserId === userId;
   }
-  // STAFF: cannot delete
-  return false;
+  return false; // SITE_ADMIN
 }
 
 export function canDeleteMalfunction(
-  roleName: string | undefined,
+  r: string | undefined,
   userId: string,
   m: { createdByUserId: string; reporterUserId: string }
 ): boolean {
-  if (isSuperAdmin(roleName)) return true;
-  if (isAdmin(roleName)) return m.createdByUserId === userId;
-  if (isManager(roleName)) {
+  if (isSuperAdmin(r)) return true;
+  if (isDepAdmin(r)) return m.createdByUserId === userId;
+  if (isSiteManager(r)) {
     return m.createdByUserId === userId || m.reporterUserId === userId;
   }
   return false;
 }
 
-// ─── Admin / user management ───────────────────────────────────────────────────
-
-/** Full system admin panel (roles, permissions, sites). */
-export function canAccessAdminPanel(roleName: string | undefined): boolean {
-  return isSuperAdmin(roleName) || isAdmin(roleName);
-}
-
-/** Manage user accounts (activate, deactivate, create, delete). */
-export function canManageUserAccounts(roleName: string | undefined): boolean {
-  return isSuperAdmin(roleName) || isAdmin(roleName) || isSiteAdmin(roleName);
-}
+// ─── User management ──────────────────────────────────────────────────────────
 
 /**
- * Peer-admin protection: an ADMIN cannot modify another ADMIN's account.
+ * Peer-admin protection: DEP_ADMIN cannot modify another DEP_ADMIN.
  * SUPER_ADMIN can modify anyone.
  */
 export function canModifyTargetUser(
-  actorRoleName: string | undefined,
+  actorRole: string | undefined,
   actorId: string,
-  targetRoleName: string,
+  targetRole: string,
   targetId: string
 ): boolean {
-  if (isSuperAdmin(actorRoleName)) return true;
-  // ADMIN cannot touch another ADMIN (peer protection)
-  if (isAdmin(actorRoleName) && isAdmin(targetRoleName) && actorId !== targetId) {
-    return false;
-  }
-  // SITE_ADMIN cannot touch ADMIN accounts
-  if (isSiteAdmin(actorRoleName) && isAdmin(targetRoleName)) {
-    return false;
-  }
+  if (isSuperAdmin(actorRole)) return true;
+  // DEP_ADMIN cannot touch another DEP_ADMIN
+  if (isDepAdmin(actorRole) && isDepAdmin(targetRole) && actorId !== targetId) return false;
+  // DEP_ADMIN cannot touch SUPER_ADMIN
+  if (isDepAdmin(actorRole) && isSuperAdmin(targetRole)) return false;
   return true;
 }
 
 // ─── Account self-service ──────────────────────────────────────────────────────
 
-/** Can the user update their own profile name? */
-export function canUpdateOwnProfile(roleName: string | undefined): boolean {
-  // STAFF (site-admin per spec) cannot update own name
-  return !isStaff(roleName);
+export function canUpdateOwnProfile(r: string | undefined): boolean {
+  return canAccessOperations(r) || canManageUserAccounts(r);
 }
 
-/** Can the user change their own password? */
-export function canChangeOwnPassword(roleName: string | undefined): boolean {
-  // STAFF (site-admin per spec) cannot change own password
-  return !isStaff(roleName);
+export function canChangeOwnPassword(r: string | undefined): boolean {
+  return canAccessOperations(r) || canManageUserAccounts(r);
 }
 
-// ─── Legacy helpers (kept for backward compat) ────────────────────────────────
+// ─── Legacy shim ──────────────────────────────────────────────────────────────
 
 export function requireSession(session: Session | null): Session {
   if (!session?.user?.id) throw new Error("UNAUTHORIZED");
   return session;
 }
 
-/** @deprecated Use canEditTask / canDeleteTask instead */
-export function canManageAll(roleName: string): boolean {
-  return isAdmin(roleName) || isManager(roleName) || isSuperAdmin(roleName);
+/** @deprecated */
+export function isAdmin(r: string | undefined): boolean {
+  return isDepAdmin(r);
+}
+
+/** @deprecated */
+export function canManageAll(r: string): boolean {
+  return isDepAdmin(r) || isSiteManager(r) || isSuperAdmin(r);
 }

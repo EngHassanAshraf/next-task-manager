@@ -3,15 +3,11 @@ import type { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 
 import { badRequest, forbidden, unauthorized } from "@/lib/api-response";
-import { canManageUserAccounts, isAdmin } from "@/lib/rbac";
+import { canManageUserAccounts, canAccessAdminPanel } from "@/lib/rbac";
 
 export function assertAdmin(session: Session | null): NextResponse | null {
-  if (!session?.user?.id) {
-    return unauthorized();
-  }
-  if (!isAdmin(session.user.roleName)) {
-    return forbidden();
-  }
+  if (!session?.user?.id) return unauthorized();
+  if (!canAccessAdminPanel(session.user.roleName)) return forbidden();
   return null;
 }
 

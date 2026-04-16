@@ -45,6 +45,7 @@ export function EditMalfunctionForm({
     const status = String(fd.get("status") ?? "OPENED_ON_TASK") as MalfunctionStatus;
 
     setPending(true);
+    
     try {
       await apiJson(`/api/malfunctions/${malfunction.id}`, {
         method: "PUT",

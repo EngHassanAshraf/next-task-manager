@@ -6,7 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { buildNewUserFormLabels } from "@/lib/i18n/label-builders";
 import { getTranslator } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
-import { isAdmin } from "@/lib/rbac";
+import { isSuperAdmin, isDepAdmin } from "@/lib/rbac";
 
 import { NewUserForm } from "./new-user-form";
 
@@ -17,9 +17,13 @@ export default async function NewUserPage() {
     orderBy: { name: "asc" },
     select: { id: true, name: true },
   });
-  const roles = isAdmin(session?.user?.roleName)
-    ? allRoles
-    : allRoles.filter((r) => r.name !== "ADMIN");
+  const actorRole = session?.user?.roleName;
+  // SUPER_ADMIN never assignable via UI; DEP_ADMIN only assignable by SUPER_ADMIN
+  const roles = allRoles.filter((r) => {
+    if (isSuperAdmin(r.name)) return false;
+    if (isDepAdmin(r.name) && !isSuperAdmin(actorRole)) return false;
+    return true;
+  });
 
   return (
     <div className="mx-auto max-w-lg space-y-4">

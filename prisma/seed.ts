@@ -12,38 +12,36 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const [adminRole, managerRole, staffRole, siteAdminRole] = await Promise.all([
+  // ── Roles ──────────────────────────────────────────────────────────────────
+  const [superAdminRole, depAdminRole, siteManagerRole, siteAdminRole] = await Promise.all([
     prisma.role.upsert({
-      where: { name: "ADMIN" },
-      update: {},
-      create: { name: "ADMIN", description: "Full access" },
+      where: { name: "SUPER_ADMIN" },
+      update: { description: "Full system override — one per system" },
+      create: { name: "SUPER_ADMIN", description: "Full system override — one per system" },
     }),
     prisma.role.upsert({
-      where: { name: "MANAGER" },
-      update: {},
-      create: { name: "MANAGER", description: "Manage all operational records" },
+      where: { name: "DEP_ADMIN" },
+      update: { description: "Department admin: full access, peer-admin ownership isolation" },
+      create: { name: "DEP_ADMIN", description: "Department admin: full access, peer-admin ownership isolation" },
     }),
     prisma.role.upsert({
-      where: { name: "STAFF" },
-      update: {},
-      create: { name: "STAFF", description: "Create and update own work" },
+      where: { name: "SITE_MANAGER" },
+      update: { description: "Site manager: own/assigned scope + delete" },
+      create: { name: "SITE_MANAGER", description: "Site manager: own/assigned scope + delete" },
     }),
     prisma.role.upsert({
       where: { name: "SITE_ADMIN" },
-      update: {},
-      create: {
-        name: "SITE_ADMIN",
-        description: "Manage user accounts (no roles, sites, or permissions)",
-      },
+      update: { description: "Site admin: own/assigned scope, no delete, no reports/admin" },
+      create: { name: "SITE_ADMIN", description: "Site admin: own/assigned scope, no delete, no reports/admin" },
     }),
   ]);
 
+  // ── Permissions ────────────────────────────────────────────────────────────
   const perms = [
-    { code: "admin.users.manage", description: "Manage users" },
-    { code: "admin.roles.manage", description: "Manage roles" },
+    { code: "admin.users.manage",       description: "Manage users" },
+    { code: "admin.roles.manage",       description: "Manage roles" },
     { code: "admin.permissions.manage", description: "Manage permissions" },
-    { code: "admin.sites.manage", description: "Manage sites" },
-    { code: "site.users.manage", description: "Site admin: manage user accounts" },
+    { code: "admin.sites.manage",       description: "Manage sites" },
   ];
 
   const createdPerms = await Promise.all(
@@ -56,34 +54,26 @@ async function main() {
     )
   );
 
-  await Promise.all(
-    createdPerms.map((p) =>
-      prisma.rolePermission.upsert({
-        where: { roleId_permissionId: { roleId: adminRole.id, permissionId: p.id } },
-        update: {},
-        create: { roleId: adminRole.id, permissionId: p.id },
-      })
-    )
-  );
-
-  const siteUsersPerm = createdPerms.find((p) => p.code === "site.users.manage");
-  if (siteUsersPerm) {
-    await prisma.rolePermission.upsert({
-      where: {
-        roleId_permissionId: { roleId: siteAdminRole.id, permissionId: siteUsersPerm.id },
-      },
-      update: {},
-      create: { roleId: siteAdminRole.id, permissionId: siteUsersPerm.id },
-    });
+  // SUPER_ADMIN and DEP_ADMIN get all permissions
+  for (const role of [superAdminRole, depAdminRole]) {
+    await Promise.all(
+      createdPerms.map((p) =>
+        prisma.rolePermission.upsert({
+          where: { roleId_permissionId: { roleId: role.id, permissionId: p.id } },
+          update: {},
+          create: { roleId: role.id, permissionId: p.id },
+        })
+      )
+    );
   }
 
+  // ── Sites ──────────────────────────────────────────────────────────────────
   const sites = await Promise.all([
     prisma.site.upsert({
       where: { id: "seed-site-a" },
       update: {},
       create: { id: "seed-site-a", name: "Site A" },
     }),
-
     prisma.site.upsert({
       where: { id: "seed-site-b" },
       update: {},
@@ -91,6 +81,7 @@ async function main() {
     }),
   ]);
 
+  // ── Users ──────────────────────────────────────────────────────────────────
   const mkUser = async (
     id: string,
     email: string,
@@ -98,7 +89,7 @@ async function main() {
     roleId: string,
     password: string
   ) => {
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
     return prisma.user.upsert({
       where: { email },
       update: { name, roleId, passwordHash },
@@ -106,30 +97,31 @@ async function main() {
     });
   };
 
-  const admin = await mkUser(
-    "seed-user-admin",
-    "admin@example.com",
-    "Admin User",
-    adminRole.id,
-    "admin123"
+  const superAdmin = await mkUser(
+    "seed-user-super",
+    "super@example.com",
+    "Super Admin",
+    superAdminRole.id,
+    "super123"
   );
 
-  const manager = await mkUser(
-    "seed-user-manager",
-    "manager@example.com",
-    "Manager User",
-    managerRole.id,
-    "manager123"
+  const depAdmin = await mkUser(
+    "seed-user-dep-admin",
+    "depadmin@example.com",
+    "Dep Admin",
+    depAdminRole.id,
+    "depadmin123"
   );
 
-  const staff = await mkUser(
-    "seed-user-staff",
-    "staff@example.com",
-    "Staff User",
-    staffRole.id,
-    "staff123"
+  const siteManager = await mkUser(
+    "seed-user-site-manager",
+    "sitemanager@example.com",
+    "Site Manager",
+    siteManagerRole.id,
+    "sitemanager123"
   );
-  await mkUser(
+
+  const siteAdmin = await mkUser(
     "seed-user-site-admin",
     "siteadmin@example.com",
     "Site Admin",
@@ -137,6 +129,7 @@ async function main() {
     "siteadmin123"
   );
 
+  // ── Sample data ────────────────────────────────────────────────────────────
   await prisma.task.upsert({
     where: { id: "seed-task-1" },
     update: {},
@@ -144,11 +137,10 @@ async function main() {
       id: "seed-task-1",
       desc: "Sample task — inspect compound wiring",
       siteId: sites[0].id,
-      assignmentToUserId: staff.id,
-      malfunctionId: null,
+      assignmentToUserId: siteAdmin.id,
       status: "IN_PROGRESS",
       statusDetails: "Awaiting site access",
-      createdByUserId: manager.id,
+      createdByUserId: siteManager.id,
     },
   });
 
@@ -160,10 +152,9 @@ async function main() {
       title: "Pump vibration",
       desc: "Unusual noise reported near pump room",
       siteId: sites[1].id,
-      reporterUserId: staff.id,
-      taskId: null,
+      reporterUserId: siteAdmin.id,
       status: "OPENED_ON_TASK",
-      createdByUserId: staff.id,
+      createdByUserId: siteAdmin.id,
     },
   });
 
@@ -174,47 +165,19 @@ async function main() {
       id: "seed-ach-computed",
       type: "COMPUTED",
       title: "Tasks closed this month",
-      desc: "System-tracked from task closures",
       siteId: null,
-      ownerUserId: admin.id,
-      targetMetric: {
-        metric: "TASKS_CLOSED",
-        window: "MONTH",
-      },
+      ownerUserId: depAdmin.id,
+      targetMetric: { metric: "TASKS_CLOSED", window: "MONTH" },
       status: "IN_PROGRESS",
     },
   });
 
-  await prisma.achievement.upsert({
-    where: { id: "seed-ach-custom" },
-    update: {},
-    create: {
-      id: "seed-ach-custom",
-      type: "CUSTOM",
-      title: "Trained 20 people at Site A",
-      desc: "Manual milestone",
-      siteId: sites[0].id,
-      ownerUserId: staff.id,
-      actualValue: 20,
-      status: "ACHIEVED",
-      achievedDatetime: new Date(),
-    },
-  });
-
   console.log("Seed complete:", {
-    sites: sites.map((s) => s.name),
-    users: [admin.email, manager.email, staff.email, "siteadmin@example.com"],
+    roles: ["SUPER_ADMIN", "DEP_ADMIN", "SITE_MANAGER", "SITE_ADMIN"],
+    users: [superAdmin.email, depAdmin.email, siteManager.email, siteAdmin.email],
   });
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect();
-    await pool.end();
-  })
-  .catch(async (e) => {
-    console.error(e);
-    await prisma.$disconnect();
-    await pool.end();
-    process.exit(1);
-  });
+  .then(async () => { await prisma.$disconnect(); await pool.end(); })
+  .catch(async (e) => { console.error(e); await prisma.$disconnect(); await pool.end(); process.exit(1); });

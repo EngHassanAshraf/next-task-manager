@@ -24,6 +24,7 @@ export default async function MalfunctionDetailPage(props: PageProps) {
   if (!m) {
     notFound();
   }
+  
   const statusHistory = await prisma.statusHistory.findMany({
     where: { entityType: "MALFUNCTION", entityId: id },
     orderBy: { changedDatetime: "desc" },
