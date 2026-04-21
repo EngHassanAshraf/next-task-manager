@@ -32,8 +32,8 @@ export default async function ReportsPage() {
     },
     {
       label: t("reports.kpiMalfunctionsClosed"),
-      value: `${report.malfunctions.closedPercent}%`,
-      sub: `${report.malfunctions.closed} / ${report.malfunctions.total}`,
+      value: `${report.malfunctions.doneOnTaskOrClosedPercent}%`,
+      sub: `${report.malfunctions.doneOnTask + report.malfunctions.closed} / ${report.malfunctions.total}`,
       icon: AlertCircle,
       tint: "bg-info/5",
       iconColor: "text-info",
@@ -124,21 +124,23 @@ export default async function ReportsPage() {
             </thead>
             <tbody className="divide-y divide-border/50">
               {report.bySite.map((s) => {
-                const taskPct = s.tasksTotal === 0 ? 0 : Math.round((s.tasksDoneOrClosed / s.tasksTotal) * 100);
-                return (
-                  <tr key={s.siteId} className="transition-colors hover:bg-muted/40">
-                    <td className="px-4 py-3 font-medium text-foreground">
-                      {s.siteName.replace(/^\d+\s*[-–—.]?\s*/, "")}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      <span className="font-medium text-foreground">{s.tasksDoneOrClosed}</span>
-                      <span className="ms-1.5 text-xs text-muted-foreground/60">({taskPct}%)</span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{s.tasksTotal}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{s.malfunctionsClosed}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{s.malfunctionsTotal}</td>
-                  </tr>
-                );
+                if (s.tasksDoneOrClosed || s.tasksTotal || s.malfunctionsClosed || s.malfunctionsTotal){
+                  const taskPct = s.tasksTotal === 0 ? 0 : Math.round((s.tasksDoneOrClosed / s.tasksTotal) * 100);
+                  return (
+                    <tr key={s.siteId} className="transition-colors hover:bg-muted/40">
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        {s.siteName.replace(/^\d+\s*[-–—.]?\s*/, "")}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        <span className="font-medium text-foreground">{s.tasksDoneOrClosed}</span>
+                        <span className="ms-1.5 text-xs text-muted-foreground/60">({taskPct}%)</span>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{s.tasksTotal}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{s.malfunctionsClosed}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{s.malfunctionsTotal}</td>
+                    </tr>
+                  );
+                }
               })}
             </tbody>
           </table>

@@ -146,7 +146,7 @@ export const ar = {
   reports: {
     pageTitle: "التقارير",
     kpiTasksDoneClosed: "المهام (منجزة + مغلقة) %",
-    kpiMalfunctionsClosed: "الأعطال المغلقة %",
+    kpiMalfunctionsClosed: "الأعطال (المنجزة + المغلقة) %",
     kpiTasksInProgress: "المهام قيد التنفيذ",
     kpiMalfunctionsDoneOnTask: "أعطال منتهية على مهمة",
     bySite: "حسب الموقع",

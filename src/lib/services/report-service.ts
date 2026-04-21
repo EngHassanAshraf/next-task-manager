@@ -18,7 +18,7 @@ export type OverviewReport = {
     openedOnTask: number;
     closed: number;
     doneOnTask: number;
-    closedPercent: number;
+    doneOnTaskOrClosedPercent: number;
   };
   bySite: Array<{
     siteId: string;
@@ -124,6 +124,8 @@ export async function getOverviewReport(
   ]);
 
   const doneOrClosed = taskDone + taskClosed;
+  const doneOnTaskOrClosed = malDoneOnTask  + malClosed; 
+  
   const tasksPerWeekMap = new Map<string, number>();
   for (const t of tasksForWeek) {
     if (!t.endClosedDatetime) continue;
@@ -168,8 +170,8 @@ export async function getOverviewReport(
       openedOnTask: malOpened,
       closed: malClosed,
       doneOnTask: malDoneOnTask,
-      closedPercent:
-        malTotal === 0 ? 0 : Math.round((malClosed / malTotal) * 1000) / 10,
+      doneOnTaskOrClosedPercent:
+        malTotal === 0 ? 0 : Math.round((doneOnTaskOrClosed / malTotal) * 1000) / 10,
     },
     bySite,
     tasksPerWeek,
